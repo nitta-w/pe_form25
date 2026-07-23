@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+
+# Playwright MCP cache
+.playwright-mcp/
+
+# Node
+node_modules/
+
+# Claude Code local settings (personal)
+.claude/settings.local.json

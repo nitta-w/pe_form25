@@ -1,0 +1,439 @@
+@charset "utf-8";
+
+.js-tc {
+  font-size: 1.4rem;
+  letter-spacing: 0;
+  position: relative;
+  min-height: 20rem;
+}
+
+/************************************
+ * 月グリッドカレンダー
+ ************************************/
+.cal {
+  background: #fff;
+  border-radius: 1.6rem;
+  padding: 1.4rem;
+  box-shadow: var(--shc, 0 0.4rem 1.4rem rgba(43, 43, 43, .06));
+  max-width: 96%;
+  scroll-margin-top: 7rem;
+}
+
+.cal__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cal__month {
+  font-weight: 900;
+  font-size: 1.4rem;
+}
+
+.cal__nav {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.cal__nav button {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  background: var(--pk-bg, #FFE8EF);
+  display: grid;
+  place-items: center;
+  border: none;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+
+.cal__nav button:disabled {
+  opacity: .3;
+  cursor: default;
+}
+
+.cal__nav svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--pk, #FF4785);
+}
+
+.cal__dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.2rem;
+  margin-bottom: 0.4rem;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink2, #6A6A6A);
+}
+
+.cal__dow span:first-child {
+  color: #E04040;
+}
+
+.cal__dow span:last-child {
+  color: #4080E0;
+}
+
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+}
+
+.cal__day {
+  aspect-ratio: 1;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  background: #fff;
+  border: 1.5px solid transparent;
+  user-select: none;
+}
+
+/* checkbox 本体は非表示 */
+.cal__day-input {
+  display: none;
+}
+
+@media (hover: hover) {
+  .cal__day:not(.past):not(.full):not(:has(.cal__day-input:checked)):hover {
+    background: var(--pk-bg, #FFE8EF);
+  }
+}
+
+.cal__day.empty {
+  visibility: hidden;
+}
+
+.cal__day.past {
+  opacity: .3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal__day.past::after {
+  content: '満席';
+  position: absolute;
+  bottom: 0;
+  font-size: 0.6rem;
+  color: #C2302F;
+  font-weight: 700;
+}
+
+.cal__day.full {
+  opacity: .45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal__day.full::after {
+  content: '満席';
+  position: absolute;
+  bottom: 0;
+  font-size: 0.6rem;
+  color: #C2302F;
+  font-weight: 700;
+}
+
+.cal__day.closed {
+  opacity: .35;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal__day.closed::after {
+  content: '休診';
+  position: absolute;
+  bottom: 4px;
+  font-size: 0.6rem;
+  color: var(--mt, #8B95A8);
+  font-weight: 600;
+  font-family: 'Noto Serif JP', serif;
+}
+
+.cal__day.beyond {
+  opacity: .2;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cal__day.sun {
+  color: #E04040;
+}
+
+.cal__day.sat {
+  color: #4080E0;
+}
+
+/* 選択状態 */
+.cal__day:has(.cal__day-input:checked) {
+  background: var(--pk, #FF4785);
+  color: #fff;
+  border-color: var(--pk, #FF4785);
+}
+
+.cal__day.sun:has(.cal__day-input:checked),
+.cal__day.sat:has(.cal__day-input:checked) {
+  color: #fff;
+}
+
+.cal__day .pop-tag {
+  display: none;
+}
+
+.cal__day.sat:not(.past)::before,
+.cal__day.sun:not(.past)::before {
+  display: block;
+  content: "";
+  position: absolute;
+  bottom: 1.5rem;
+  right: 10%;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--gold, #C9A84C);
+  border-radius: 50%;
+}
+
+.cal__help {
+  font-size: 1rem;
+  color: var(--ink2, #6A6A6A);
+  margin-top: 0.8rem;
+  line-height: 1.5;
+}
+
+/************************************
+ * 希望行（第1〜第3希望）
+ ************************************/
+.pref {
+  margin-top: 1.2rem;
+}
+
+.pref__row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.pref__label {
+  min-width: 5.2rem;
+  color: var(--pk, #FF4785);
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.pref__date {
+  flex: 1;
+  padding: 0.8rem;
+  border: 1.5px solid var(--bdr, #F3D9E2);
+  border-radius: 1rem;
+  background: #FAFAFA;
+  font-size: 1.2rem;
+  text-align: center;
+  color: var(--ink, #2B2B2B);
+  min-height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pref__date.filled {
+  border-color: var(--pk, #FF4785);
+  color: var(--pk, #FF4785);
+}
+
+.pref__time {
+  width: 8rem;
+  flex-shrink: 0;
+}
+
+.pref__time select {
+  width: 100%;
+  padding: 0.7rem 0.4rem;
+  border: 1.5px solid var(--bdr, #F3D9E2);
+  border-radius: 1rem;
+  background: #FAFAFA;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  appearance: none;
+  color: var(--ink, #2B2B2B);
+  cursor: pointer;
+  outline: none;
+}
+
+.pref__time select:focus {
+  border-color: var(--pk, #FF4785);
+}
+
+.pref__time select:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.pref__clear {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: var(--bdr, #F3D9E2);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.pref__clear svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--ink2, #6A6A6A);
+}
+
+/************************************
+ * hidden input
+ ************************************/
+.js-tc-hidden-input {
+  display: none;
+}
+
+/************************************
+ * ローダー
+ ************************************/
+.js-tc-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.js-tc-loading__inner {
+  width: 35px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 4px solid var(--pk, #FF4785);
+  animation: spin-1 1s infinite linear alternate, spin-2 2s infinite linear;
+}
+
+.js-tc-loading.is-visible {
+  height: 100%;
+  animation: tcFadeIn .1s forwards ease-out;
+}
+
+/************************************
+ * 代替メッセージ
+ ************************************/
+.js-tc-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  visibility: hidden;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.js-tc-message.is-visible {
+  height: 100%;
+  animation: tcFadeIn .1s forwards ease-out;
+}
+
+.js-tc-message__inner a {
+  color: #2b83ee;
+}
+
+.js-tc-message__em-text {
+  color: #c0392b;
+}
+
+/************************************
+ * アニメーション
+ ************************************/
+@keyframes tcFadeIn {
+  0% {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  100% {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+@keyframes spin-1 {
+  0% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%)
+  }
+
+  12.5% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%)
+  }
+
+  25% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  50% {
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  62.5% {
+    clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  75% {
+    clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  100% {
+    clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0% 100%)
+  }
+}
+
+@keyframes spin-2 {
+  0% {
+    transform: scaleY(1) rotate(0deg)
+  }
+
+  49.99% {
+    transform: scaleY(1) rotate(135deg)
+  }
+
+  50% {
+    transform: scaleY(-1) rotate(0deg)
+  }
+
+  100% {
+    transform: scaleY(-1) rotate(-135deg)
+  }
+}

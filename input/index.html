@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>脂肪はなぜ、消えないの？｜2026年夏・ダイエットの答え合わせ | JUNOビューティークリニック</title>
+<!--
+  スルリム横スクロールストーリーLP v0.6（開発版・画像は相対パス参照）
+  設計書: 04_横スクロールLP_シナリオ設計書.md
+  実装済み: S0最小ゲート（音あり/音なし） / S1プロフィール4問 / 歩行エンジン / 鏡面タイル背景 / 脂肪くん浮遊システム
+  未実装: S2失敗街道以降（次版）
+-->
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overflow:hidden; overscroll-behavior:none; }  /* ページ全体のバウンス禁止 */
+  body {
+    font-family:'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+    background:#3a2f3d; display:flex; justify-content:center;
+  }
+  /* スマホ縦ファースト。PCでは中央にスマホ幅フレーム */
+  .app {
+    position:relative; width:100%; max-width:480px; height:100dvh;
+    background:#fff0f6; overflow:hidden; display:flex; flex-direction:column;
+  }
+
+  /* ===== ステージ（上58%で固定・下の文章量に影響されない） ===== */
+  .stage { position:relative; flex:0 0 58%; overflow:hidden; }
+  .bgstrip { position:absolute; top:0; left:0; height:100%; display:flex; will-change:transform; }
+  .bgstrip img { height:100%; width:auto; display:block; margin-right:-1px; }  /* サブピクセル隙間(白線)対策で1px重ねる */
+  .bgstrip img.flip { transform:scaleX(-1); }
+
+  .girl {
+    position:absolute; left:16%; bottom:4%;
+    height:62%; aspect-ratio:440/760; z-index:3;
+    transition:transform .1s ease-out;
+  }
+  .girl.bob { transform:translateY(-1.2%); }
+  .girl.idle { animation:idleBob 3s ease-in-out infinite; }
+  @keyframes idleBob { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-.7%);} }
+  .girl img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; }
+  .girl img.on { opacity:1; }
+
+  .fat { position:absolute; height:11%; z-index:2; animation:fatFloat 2.6s ease-in-out infinite; transition:opacity .4s; }
+  .fat img { height:100%; }
+  /* 小物はゆいの目の前（画面中央帯）に、夢らしくふわっと浮かぶ */
+  .prop { position:absolute; bottom:31%; z-index:2; animation:propFloat 3.6s ease-in-out infinite; }
+  .prop img { height:100%; filter:drop-shadow(0 10px 14px rgba(90,40,70,.22)); }
+  @keyframes propFloat { 0%,100%{ transform:translateY(0) rotate(-1.5deg);} 50%{ transform:translateY(-4%) rotate(1.5deg);} }
+  @keyframes fatFloat { 0%,100%{ transform:translateY(0) rotate(-3deg);} 50%{ transform:translateY(-22%) rotate(3deg);} }
+
+  /* ストーリーズ式プログレスバー（IG/Telegramの型・SNS既視感） */
+  .storybar { position:absolute; top:8px; left:10px; right:10px; display:flex; gap:4px; z-index:9; }
+  .storybar span {
+    flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,.45);
+    box-shadow:0 1px 3px rgba(90,40,70,.18); transition:background .5s;
+  }
+  .storybar span.done { background:#fff; }
+
+  .hud { position:absolute; top:20px; right:10px; z-index:8; display:flex; gap:8px; }
+  .hud button {
+    width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,.85); color:#b3477a; font-size:17px; font-weight:900;
+    box-shadow:0 2px 8px rgba(179,71,122,.25);
+  }
+  #fatCounter {
+    position:absolute; top:22px; left:12px; z-index:8; display:none;
+    background:rgba(255,255,255,.85); color:#b3477a; font-weight:900; font-size:13px;
+    padding:6px 13px; border-radius:999px; box-shadow:0 2px 8px rgba(179,71,122,.2);
+  }
+
+  /* ===== ナレーション帯＋選択肢（下1/3） ===== */
+  .talk {
+    flex:0 0 118px; background:#fff; border-top:3px solid #ffd3e4;
+    padding:12px 16px 8px; overflow-y:auto;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+  }
+  @media (max-height:700px){ .talk { flex-basis:104px; } .talk__text { font-size:13.5px; } }
+  .talk__name { font-size:11px; font-weight:900; color:#e0679a; margin-bottom:2px; }
+  .talk__text { font-size:14.5px; font-weight:700; color:#5c4a52; line-height:1.65; }
+  /* テロップ内の強調: <b>=色文字 / <em>=蛍光マーカー */
+  .talk__text b, .pop__body b { color:#d14e82; }
+  .talk__text em, .pop__body em {
+    font-style:normal; font-weight:900; color:#c9366e;
+    background:linear-gradient(transparent 58%, #ffd9e8 58%);
+  }
+  .choices {
+    flex:1 1 auto; overflow-y:auto; background:#fff;
+    padding:4px 14px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:8px; align-content:flex-start;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;  /* スクロールの親連鎖を遮断 */
+  }
+  /* Noom式: 選択肢はニュートラル、選んだものだけ濃色反転＋ラジオ丸 */
+  .choices button {
+    border:none; border-radius:14px; padding:12px 16px; cursor:pointer; flex:0 0 auto;
+    background:#f7eef2; color:#5c4a52;
+    font-family:inherit; font-size:14.5px; font-weight:800; text-align:left;
+    transition:transform .08s, background .15s;
+  }
+  .choices button:active { transform:scale(.97); }
+  .choices button.opt { position:relative; padding-left:40px; }
+  .choices button.opt::before {
+    content:''; position:absolute; left:14px; top:50%; transform:translateY(-50%);
+    width:15px; height:15px; border-radius:50%;
+    border:2px solid #dcc2cf; background:#fff;
+  }
+  .choices button.sel {
+    background:linear-gradient(135deg,#e0679a,#c9557f); color:#fff;
+    box-shadow:0 3px 10px rgba(201,85,127,.35);
+  }
+  .choices button.sel::before { border-color:#fff; box-shadow:inset 0 0 0 3.5px #fff; background:#d14e82; }
+  .choices .tapNext {
+    background:#fff; color:#e0679a; border:2px dashed #ffb7d2; text-align:center; box-shadow:none;
+  }
+  .choices .multiOk {
+    background:linear-gradient(135deg,#9fd8a8,#7ac97a); box-shadow:0 3px 10px rgba(122,201,122,.4);
+    text-align:center;
+  }
+
+  /* タップの「ほわん」演出（やわらかい光の輪が広がって消える） */
+  .choices > button, .pop__btn, .gate__btns button, .lineBtn { position:relative; overflow:hidden; }
+  .ripple {
+    position:absolute; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,255,255,.95), rgba(255,214,231,.5) 55%, transparent 72%);
+    transform:scale(0);
+    animation:rippleGo .65s ease-out forwards;
+  }
+  @keyframes rippleGo { to { transform:scale(3.2); opacity:0; } }
+  @media (prefers-reduced-motion: reduce) { .ripple { display:none; } }
+
+  /* ===== 全画面ポップアップ（学習カード・診断書・特典） ===== */
+  #pop {
+    position:absolute; inset:0; z-index:18; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(60,35,55,.42); backdrop-filter:blur(3px);
+    padding:18px;
+  }
+  #pop.show { display:flex; }
+  .scrollHint {
+    position:sticky; bottom:-1px; text-align:center;
+    font-size:11px; font-weight:900; color:#e0679a;
+    background:linear-gradient(transparent, #fff 60%);
+    padding:16px 0 2px; margin-top:-18px;
+    animation:hintBob 1.1s ease-in-out infinite;
+  }
+  @keyframes hintBob { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(4px);} }
+  .pop__card {
+    width:100%; max-width:360px; max-height:84%;
+    display:flex; flex-direction:column;   /* ボタンは常に見える位置に固定 */
+    background:#fff; border-radius:20px; padding:20px 18px 16px;
+    box-shadow:0 14px 44px rgba(90,40,70,.4);
+    animation:popIn .4s ease-out;
+  }
+  .pop__body { overflow-y:auto; flex:1 1 auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  @keyframes popIn { from{ opacity:0; transform:translateY(16px) scale(.96);} to{ opacity:1; transform:none;} }
+  .pop__title { font-size:16px; font-weight:900; color:#d14e82; text-align:center; margin-bottom:10px; }
+  .pop__body { font-size:14px; font-weight:700; color:#5c4a52; line-height:1.75; }
+  .pop__btn {
+    display:block; width:100%; margin-top:14px; border:none; border-radius:999px;
+    padding:13px; background:linear-gradient(135deg,#ff9ec0,#f06797); color:#fff;
+    font-family:inherit; font-size:15px; font-weight:900; cursor:pointer;
+    box-shadow:0 4px 14px rgba(240,103,151,.4);
+  }
+  .imgph {
+    margin:10px 0 4px; padding:26px 10px; border:2px dashed #e8bcd0; border-radius:12px;
+    text-align:center; color:#c39aae; font-size:12px; font-weight:700; background:#fdf5f9;
+  }
+  .badges { display:flex; gap:8px; margin:10px 0 4px; }
+  .badges div {
+    flex:1; border:2px solid #8fbf9a; border-radius:10px; padding:9px 4px;
+    text-align:center; font-size:11px; font-weight:900; color:#4e8b5e; background:#f2faf4;
+    line-height:1.45;
+  }
+  .karte { border:2px solid #e8bcd0; border-radius:12px; padding:12px; background:#fdf7fa; margin-top:8px; }
+  .karte__type { font-size:19px; font-weight:900; color:#d14e82; text-align:center; margin-bottom:6px; }
+  .gcard {
+    position:relative; overflow:hidden;
+    border:none; border-radius:16px; padding:15px 14px; margin-top:10px;
+    background:linear-gradient(150deg,#fffdf6,#fff3d3 60%,#ffe9b8);
+    box-shadow:0 6px 18px rgba(190,140,30,.28), inset 0 0 0 2px #e6c26a, inset 0 0 0 4px #fffbe8;
+  }
+  .gcard::after {  /* キラーンと光が走る */
+    content:''; position:absolute; top:0; left:-80%; width:45%; height:100%;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,.9), transparent);
+    transform:skewX(-20deg); animation:shine 2.8s ease-in-out infinite;
+  }
+  @keyframes shine { 0%{ left:-80%; } 55%, 100%{ left:140%; } }
+  .gcard__num { font-size:11px; font-weight:900; color:#b8860b; letter-spacing:.14em; }
+  .gcard__t { font-size:17px; font-weight:900; color:#7a5a12; margin:3px 0; }
+  .gcard__d { font-size:12.5px; font-weight:700; color:#9a7c3f; line-height:1.6; }
+  .price__old { text-decoration:line-through; color:#b0a08a; font-size:13px; }
+  .price__now { font-size:24px; font-weight:900; color:#e0426e; }
+  /* 全画面セレブレーション（Mobbin: 実在アプリの達成演出の型 = 光背+円形バッジ+テキスト） */
+  #banner {
+    position:absolute; inset:0; z-index:17; display:none; overflow:hidden;
+    align-items:center; justify-content:center; pointer-events:none;
+    background:radial-gradient(circle at 50% 44%, rgba(255,242,248,.97), rgba(233,187,209,.93) 72%);
+  }
+  #banner.show { display:flex; }
+  .bn__rays {
+    position:absolute; width:160vmax; height:160vmax; left:50%; top:44%;
+    transform:translate(-50%,-50%);
+    background:repeating-conic-gradient(rgba(255,255,255,.4) 0 6deg, transparent 6deg 20deg);
+    animation:raysSpin 16s linear infinite; opacity:.55;
+  }
+  @keyframes raysSpin { to { transform:translate(-50%,-50%) rotate(360deg); } }
+  .bn__inner { position:relative; text-align:center; animation:bannerIn .55s cubic-bezier(.2,1.4,.4,1); }
+  .bn__badge {
+    width:120px; height:120px; margin:0 auto 16px; border-radius:50%; background:#fff;
+    box-shadow:0 12px 36px rgba(180,80,120,.35), 0 0 0 9px rgba(255,255,255,.6);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .bn__badge img { max-width:74%; max-height:80%; }
+  .bn__title { font-size:21px; font-weight:900; color:#b3477a; letter-spacing:.04em; text-shadow:0 1px 0 #fff; }
+  .bn__sub { font-size:12.5px; font-weight:800; color:#a37f90; margin-top:5px; }
+  @keyframes bannerIn { from{ transform:scale(.5); opacity:0;} to{ transform:scale(1); opacity:1;} }
+  #timer {
+    position:absolute; top:20px; left:50%; transform:translateX(-50%); z-index:8; display:none;
+    background:rgba(255,255,255,.88); color:#b3477a; font-weight:900; font-size:11.5px;
+    padding:6px 14px; border-radius:999px; white-space:nowrap;
+    box-shadow:0 2px 8px rgba(179,71,122,.18);
+  }
+  .lineBtn {
+    background:#06C755 !important; color:#fff !important; text-align:center !important;
+    font-size:16.5px !important; padding:15px !important;
+    box-shadow:0 4px 16px rgba(6,199,85,.45) !important;
+    animation:pulse 1.6s ease-in-out infinite;
+    display:flex !important; align-items:center; justify-content:center; gap:8px;
+  }
+  .lineBtn svg { width:22px; height:22px; flex:0 0 auto; }
+  @keyframes pulse { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.03);} }
+
+  /* カルーセル（選ばれる理由） */
+  .caro { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:10px; margin:6px -6px 2px; padding:2px 6px 6px; }
+  .caro::-webkit-scrollbar { display:none; }
+  .caro > div {
+    flex:0 0 88%; scroll-snap-align:center;
+    border:2px solid #f3d3e2; border-radius:14px; padding:12px; background:#fdf7fa;
+  }
+  .caro .imgph { padding:20px 8px; margin:8px 0 2px; }
+  .caroDots { text-align:center; color:#ecc3d6; font-size:11px; letter-spacing:5px; margin-top:6px; }
+  .caroDots b { color:#d14e82; }
+
+  /* カレンダー */
+  .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; padding:10px 0 4px; }
+  .cal .dow { text-align:center; font-size:10px; font-weight:900; color:#c39aae; padding:2px 0; }
+  .cal button {
+    position:relative; border:none; border-radius:10px; padding:10px 0;
+    background:#f7eef2; color:#5c4a52; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer;
+    text-align:center;
+  }
+  .cal button:disabled { opacity:.25; }
+  .cal button.sel { background:linear-gradient(135deg,#e0679a,#c9557f); color:#fff; }
+  .cal button.sel::after {
+    content:attr(data-ord); position:absolute; top:-6px; right:-4px;
+    width:17px; height:17px; border-radius:50%; background:#fff; border:2px solid #d14e82;
+    color:#d14e82; font-size:10px; font-weight:900; line-height:14px;
+  }
+  .cal .mon { grid-column:1/-1; text-align:center; font-size:12px; font-weight:900; color:#b3477a; padding:2px 0; }
+
+  /* ギフトのポンポン出現 */
+  .gcard { opacity:0; animation:giftIn .5s cubic-bezier(.25,1.4,.45,1) forwards; }
+  .gcard.g1 { animation-delay:.15s; } .gcard.g2 { animation-delay:.8s; } .gcard.g3 { animation-delay:1.45s; } .gcard.g4 { animation-delay:2.1s; }
+  @keyframes giftIn { from{ opacity:0; transform:translateY(-16px) scale(.88);} to{ opacity:1; transform:none;} }
+
+  /* スルリム撃退演出 */
+  .app.shake { animation:shake .32s; }
+  @keyframes shake { 0%,100%{ transform:translate(0);} 25%{ transform:translate(-7px,3px);} 50%{ transform:translate(6px,-3px);} 75%{ transform:translate(-4px,2px);} }
+  #syringe {
+    position:absolute; right:4%; top:26%; width:88px; z-index:5;
+    opacity:0; transform:translateX(40px) rotate(-18deg); transition:opacity .35s, transform .35s;
+    filter:drop-shadow(0 4px 8px rgba(90,40,70,.3));
+  }
+  #syringe.in { opacity:1; transform:translateX(0) rotate(-18deg); }
+  #syringe.jab { transform:translateX(-26px) translateY(6px) rotate(-24deg); transition:transform .12s; }
+  #flash { position:absolute; inset:0; background:#fff; opacity:0; z-index:7; pointer-events:none; transition:opacity .18s; }
+
+  /* 動きを減らす設定のユーザーには装飾アニメを止める（歩行など本質演出は残す） */
+  @media (prefers-reduced-motion: reduce) {
+    .confetti, .gcard::after { display:none; }
+    .lineBtn, .fat, .girl.idle, .scrollHint { animation:none !important; }
+    .app.shake { animation:none; }
+  }
+
+  /* 紙吹雪 */
+  .confetti { position:absolute; top:-4%; width:9px; height:13px; z-index:9; border-radius:2px; animation:confFall linear forwards; }
+  @keyframes confFall {
+    from { transform:translateY(0) rotate(0); opacity:1; }
+    to   { transform:translateY(110vh) rotate(720deg); opacity:.7; }
+  }
+
+  /* ===== S0 最小ゲート ===== */
+  #gate {
+    position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
+    background:rgba(60,35,55,.28); backdrop-filter:blur(2px);
+  }
+  .gate__card {
+    width:85%; max-width:345px; background:#fff; border-radius:22px;
+    padding:26px 22px 22px; text-align:center; box-shadow:0 16px 48px rgba(90,40,70,.32);
+    animation:gateIn .5s ease-out;
+  }
+  @keyframes gateIn { from{ opacity:0; transform:translateY(14px) scale(.97);} to{ opacity:1; transform:none;} }
+  .gate__clinic {
+    font-size:10px; font-weight:700; color:#c5a3b3; letter-spacing:.3em; text-indent:.3em;
+  }
+  .gate__mascot { width:56px; display:block; margin:14px auto 2px; }
+  .gate__title {
+    font-size:24px; font-weight:900; color:#4a3640;
+    line-height:1.52; letter-spacing:.04em; margin:8px 0 10px;
+  }
+  .gate__sub {
+    font-size:12.5px; font-weight:800; color:#a37f90; letter-spacing:.08em;
+    margin-bottom:18px;
+  }
+  .gate__chips { display:flex; gap:8px; justify-content:center; margin-bottom:20px; }
+  .gate__chips span {
+    font-size:11px; font-weight:900; color:#c9557f;
+    background:#fbeff5; border:1.5px solid #f3d3e2; border-radius:999px; padding:6px 12px;
+  }
+  .gate__btns { display:flex; flex-direction:column; gap:10px; }
+  .gate__btns button {
+    border:none; border-radius:999px; padding:13px; cursor:pointer; font-family:inherit;
+    font-size:15px; font-weight:900;
+  }
+  #startSound { background:linear-gradient(135deg,#ff9ec0,#f06797); color:#fff; box-shadow:0 4px 14px rgba(240,103,151,.45); }
+  #startMute { background:none; color:#a5798c; font-size:13px; padding:8px; text-decoration:underline; text-underline-offset:3px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="stage" id="stage">
+    <div class="bgstrip" id="bgstrip"></div>
+    <div class="storybar" id="storybar"></div>
+    <div id="props"></div>
+    <div id="fats"></div>
+    <div class="girl" id="girl">
+      <img src="assets/walk_1.webp" class="on">
+      <img src="assets/walk_2.webp">
+      <img src="assets/walk_3.webp">
+      <img src="assets/walk_4.webp">
+    </div>
+    <div id="fatCounter">脂肪くん×0</div>
+    <div id="timer"></div>
+    <div class="hud"><button id="muteBtn" title="音の切り替え">♪</button></div>
+    <div id="banner">
+      <div class="bn__rays"></div>
+      <div class="bn__inner">
+        <div class="bn__badge"><img alt=""></div>
+        <div class="bn__title"></div>
+        <div class="bn__sub"></div>
+      </div>
+    </div>
+    <svg id="syringe" viewBox="0 0 100 40" xmlns="http://www.w3.org/2000/svg">
+      <rect x="30" y="12" width="44" height="16" rx="4" fill="#fff" stroke="#e0679a" stroke-width="2.5"/>
+      <rect x="36" y="16" width="26" height="8" rx="2" fill="#ffd3e4"/>
+      <rect x="74" y="9" width="7" height="22" rx="2" fill="#e0679a"/>
+      <rect x="81" y="17" width="14" height="6" rx="3" fill="#e0679a"/>
+      <line x1="30" y1="20" x2="6" y2="20" stroke="#b3477a" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <div id="flash"></div>
+  </div>
+  <div class="talk">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="talk__name" id="talkName">ナレーション</div>
+      <div id="qdots" style="font-size:10px; letter-spacing:3px; color:#e0679a;"></div>
+    </div>
+    <div class="talk__text" id="talkText"></div>
+  </div>
+  <div class="choices" id="choices"></div>
+
+  <!-- 全画面ポップアップ（.app直下＝ナレーション帯ごと覆う） -->
+  <div id="pop"></div>
+
+  <!-- S0 最小ゲート -->
+  <div id="gate">
+    <div class="gate__card">
+      <div class="gate__clinic">JUNO BEAUTY CLINIC</div>
+      <img class="gate__mascot" src="assets/fat_2_m.webp" alt="">
+      <div class="gate__title">脂肪はなぜ、<br>消えないの？</div>
+      <div class="gate__sub">2026年夏・ダイエットの答え合わせ</div>
+      <div class="gate__chips"><span>約3分で読めます</span><span>個人情報の入力なし</span></div>
+      <div class="gate__btns">
+        <button id="startSound">♪ 音ありで始める</button>
+        <button id="startMute">音なしで始める</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= 設定（チャット版/クエスト版と互換） ================= */
+const CONFIG = {
+  BOT_BASIC_ID: '897vblrf',
+  LP_ID: 'sururim_walk_v1',
+  VAR_IDS: {
+    gender:'2184987', age:'2184988', body_parts:'2184994', diet_history:'2460256',
+    coupon:'2184995', clinic_area:'2184547', clinic:'2184548',
+    reserve_date1:'2184549', reserve_time1:'2184551',
+    reserve_date2:'2349620', reserve_time2:'2349621',
+    reserve_date3:'2433744', reserve_time3:'2433745',
+    lp_source:'2504096'
+  }
+};
+const ASSET = 'assets/';
+
+/* ================= storeラッパー（ストレージ不可環境対策・既存LP踏襲） ================= */
+const store = (() => {
+  let ok = true; const mem = {};
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); } catch(e){ ok = false; }
+  return {
+    get(k){ try { return ok ? localStorage.getItem(k) : (mem[k] ?? null); } catch(e){ return mem[k] ?? null; } },
+    set(k,v){ try { if(ok) localStorage.setItem(k,v); else mem[k]=v; } catch(e){ mem[k]=v; } },
+    del(k){ try { if(ok) localStorage.removeItem(k); else delete mem[k]; } catch(e){ delete mem[k]; } }
+  };
+})();
+// 旧セーブキーの掃除（クエスト版の方針踏襲）
+['sururim_walk_save'].forEach(k => store.del(k));
+
+/* ================= 回答ステート ================= */
+const answers = { gender:'', age:'', body_parts:[], diet_history:[] };
+
+/* ================= サウンド（WebAudio・軽量） ================= */
+const SND = (() => {
+  let ctx = null, muted = true, bgmTimer = null;
+  function ac(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); return ctx; }
+  function tone(f, dur, type, vol, when){
+    if (muted) return;
+    try {
+      const c = ac(), o = c.createOscillator(), g = c.createGain();
+      const t = c.currentTime + (when||0);
+      o.type = type||'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol||.12, t+.015);
+      g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+.05);
+    } catch(e){}
+  }
+  // ゆるかわBGM: 常時再生。歩き中=軽快 / 停止・カード中=ゆったり低め（無音の寂しさをなくす）
+  const seqWalk = [523, 659, 784, 659, 587, 698, 880, 698];
+  const seqCalm = [392, 494, 587, 494, 440, 523, 659, 523];
+  let step = 0, mood = 'calm';
+  function bgmStart(){
+    if (bgmTimer) return;
+    bgmTimer = setInterval(() => {
+      if (mood === 'calm' && step % 2 === 1) { step++; return; }  // ゆったりは半分のテンポ
+      const s = (mood === 'walk') ? seqWalk : seqCalm;
+      tone(s[step % 8], mood === 'walk' ? .28 : .55, 'triangle', mood === 'walk' ? .05 : .032);
+      step++;
+    }, 240);
+  }
+  function bgmStop(){ clearInterval(bgmTimer); bgmTimer = null; }
+  return {
+    unlock(withSound){ muted = !withSound; try { ac().resume(); } catch(e){} if (withSound) bgmStart(); },
+    setMuted(m){ muted = m; if (m) bgmStop(); else bgmStart(); },
+    isMuted(){ return muted; },
+    tap(){ tone(880, .09, 'sine', .09); },
+    pop(){ tone(392, .16, 'sine', .14); tone(523, .12, 'sine', .1, .05); },
+    burst(){ tone(784, .1, 'square', .07); tone(1047, .25, 'sine', .1, .06); tone(1568, .3, 'sine', .06, .12); },
+    levelup(){ [523, 659, 784, 1047].forEach((f, i) => tone(f, .18, 'triangle', .12, i * .09)); },
+    gaan(){ tone(196, .55, 'sawtooth', .07); tone(185, .55, 'sawtooth', .05, .03); },
+    blip(){ tone(1250, .025, 'square', .02); },
+    walkOn(){ mood = 'walk'; }, walkOff(){ mood = 'calm'; }
+  };
+})();
+
+/* ================= 背景（鏡面タイル・パララックス） ================= */
+const BG = (() => {
+  const strip = document.getElementById('bgstrip');
+  let x = 0, tileW = 0, cur = '';
+  function load(file){
+    cur = file;
+    strip.innerHTML = '';
+    x = 0;
+    const h = document.getElementById('stage').clientHeight;
+    tileW = Math.ceil(h * 1536 / 1024);
+    const need = Math.ceil(document.getElementById('app').clientWidth / tileW) + 2;
+    for (let i = 0; i < need + 1; i++) {
+      const im = document.createElement('img');
+      im.src = ASSET + file;
+      if (i % 2 === 1) im.className = 'flip';   // 鏡面タイルで継ぎ目ゼロ
+      im.draggable = false;
+      strip.appendChild(im);
+    }
+    strip.style.transform = 'translateX(0)';
+  }
+  function scroll(dx){
+    x -= dx;
+    if (x <= -tileW * 2) x += tileW * 2;  // 原画+反転の2枚周期でループ
+    strip.style.transform = `translateX(${x}px)`;
+  }
+  // 場面転換（ふわっと白フェード→差し替え→フェード戻し）
+  function change(file){
+    if (file === cur) return Promise.resolve();
+    return new Promise(res => {
+      let fade = document.getElementById('bgfade');
+      if (!fade){
+        fade = document.createElement('div');
+        fade.id = 'bgfade';
+        fade.style.cssText = 'position:absolute;inset:0;background:#fff4f9;opacity:0;transition:opacity .45s;z-index:6;pointer-events:none;';
+        document.getElementById('stage').appendChild(fade);
+      }
+      fade.style.opacity = '1';
+      setTimeout(() => {
+        // 画像の読み込み完了を待ってから差し替え（本番回線での「白抜け」対策）
+        const pre = new Image();
+        const go = () => {
+          load(file);
+          requestAnimationFrame(() => {
+            fade.style.opacity = '0';
+            setTimeout(res, 460);
+          });
+        };
+        pre.onload = go;
+        pre.onerror = go;
+        pre.src = ASSET + file;
+      }, 480);
+    });
+  }
+  return { load, scroll, change };
+})();
+
+/* ================= ゆい（歩行エンジン） ================= */
+const GIRL = (() => {
+  const el = document.getElementById('girl');
+  const imgs = [...el.querySelectorAll('img')];
+  let frame = 0, walking = false, raf = null, last = 0, acc = 0;
+  const FRAME_MS = 1000/7, SPEED = 2.6;  // 歩きテストで決めた7コマ/秒
+  function show(n){
+    imgs.forEach((im,k)=>im.classList.toggle('on', k===n));
+    el.classList.toggle('bob', n===1 || n===3);
+  }
+  function loop(t){
+    if (!walking) return;
+    if (!last) last = t;
+    const dt = t - last; last = t; acc += dt;
+    while (acc >= FRAME_MS) { acc -= FRAME_MS; frame = (frame+1)%4; show(frame); }
+    BG.scroll(SPEED * dt / 16.7);
+    FAT.drift(SPEED * dt / 16.7);
+    raf = requestAnimationFrame(loop);
+  }
+  // 基本は歩き続ける。止まるのは演出上の特別な瞬間だけ
+  function start(){
+    if (walking) return;
+    walking = true; last = 0; SND.walkOn();
+    el.classList.remove('idle');
+    raf = requestAnimationFrame(loop);
+  }
+  function stop(){
+    walking = false; cancelAnimationFrame(raf);
+    show(0); frame = 0; SND.walkOff();
+    el.classList.add('idle');  // 停止中も呼吸モーション（完全静止させない）
+  }
+  function walk(ms){ start(); return new Promise(res => setTimeout(res, ms)); }
+  // 正面ポーズ（表情リアクション）への切り替え。ネガ表情=ガーン音／ポジ表情=レベルアップ音
+  let poseImg = null;
+  const NEGA_POSES = ['ショック','泣き','おなかつまみ','考え中'];
+  function pose(file){
+    stop();
+    if (!poseImg){
+      poseImg = document.createElement('img');
+      el.appendChild(poseImg);
+    }
+    poseImg.src = ASSET + file;
+    imgs.forEach(im => im.classList.remove('on'));
+    poseImg.classList.add('on');
+    if (NEGA_POSES.some(n => file.includes(n))) SND.gaan(); else SND.levelup();
+  }
+  function unpose(){
+    if (poseImg) poseImg.classList.remove('on');
+    show(0);
+  }
+  return { start, stop, walk, pose, unpose };
+})();
+
+/* ================= 脂肪くん（浮遊システム） ================= */
+const FAT = (() => {
+  const wrap = document.getElementById('fats');
+  const counter = document.getElementById('fatCounter');
+  // スマホ縦基準の散布表（ゆいの背後の空間）
+  const spots = [
+    {left: 6, bottom: 62}, {left: 1, bottom: 44}, {left: 9, bottom: 30},
+    {left: 2, bottom: 74}, {left: 11, bottom: 50}, {left: 5, bottom: 20},
+    {left: 13, bottom: 68}, {left: 12, bottom: 38},
+  ];
+  const faces = ['fat_1_s.webp','fat_2_m.webp','fat_5_warai.webp','fat_4_niyari.webp','fat_2_m.webp','fat_6_dakitsuki.webp','fat_1_s.webp','fat_5_warai.webp'];
+  const list = [];
+  let busy = false;  // 破裂演出中は追加禁止（配列競合でお化け脂肪くんが残る）
+  function update(n){ counter.textContent = '脂肪くん×' + n; counter.style.display = n ? 'block' : 'none'; }
+  return {
+    add(size){
+      if (busy || list.length >= spots.length) return;
+      const p = spots[list.length];
+      const el = document.createElement('div');
+      el.className = 'fat';
+      el.style.left = p.left + '%'; el.style.bottom = p.bottom + '%';
+      el.style.animationDelay = (-list.length * .7) + 's';
+      el.style.animationDuration = (2.2 + (list.length % 3) * .5) + 's';
+      const file = (size === 'L') ? 'fat_3_l.webp' : faces[list.length % faces.length];
+      if (size === 'L') el.style.height = '15%';  // ドカ食い産は大きい
+      el.innerHTML = `<img src="${ASSET}${file}">`;
+      wrap.appendChild(el);
+      el.animate([{transform:'scale(0)'},{transform:'scale(1.25)'},{transform:'scale(1)'}],{duration:350,easing:'ease-out'});
+      SND.pop();
+      list.push(el); update(list.length);
+    },
+    drift(dx){ /* 歩行中は妖精なのでふわっと追従（現状は位置固定＝一緒に移動して見える） */ },
+    burstAll(){
+      if (busy || !list.length) return;
+      busy = true;
+      const snapshot = [...list];
+      list.length = 0;  // 先に空にして以降のaddと衝突させない
+      let remaining = snapshot.length;
+      snapshot.forEach((el,k)=>{
+        setTimeout(()=>{
+          const img = el.querySelector('img');
+          img.src = ASSET + 'fat_8_haretsu.webp'; SND.burst();
+          el.animate([{transform:'scale(1)'},{transform:'scale(1.5)'}],{duration:200,fill:'forwards'});
+          setTimeout(()=>{ img.src = ASSET + 'fat_9_shometsu.webp'; el.style.opacity = '0'; }, 220);
+          setTimeout(()=>{
+            el.remove();
+            remaining--;
+            if (remaining === 0) busy = false;
+          }, 650);
+        }, k * 330);
+      });
+      // カウンタは破裂のたびに減らす（表示専用）
+      let shown = snapshot.length;
+      snapshot.forEach((_,k)=> setTimeout(()=>{ shown--; update(shown); }, k * 330 + 230));
+    },
+    shrinkAll(){  // 学習パート: 小さくなる（でも消えない）
+      [...wrap.querySelectorAll('.fat img')].forEach(im => {
+        im.style.transition = 'transform .9s ease';
+        im.style.transform = 'scale(.55)';
+      });
+      SND.tap();
+    },
+    restoreAll(){  // 学習パート: ぷくーっと元に戻る
+      [...wrap.querySelectorAll('.fat img')].forEach(im => {
+        im.style.transition = 'transform .7s cubic-bezier(.3,1.6,.5,1)';
+        im.style.transform = 'scale(1)';
+      });
+      SND.pop();
+    },
+    count(){ return list.length; }
+  };
+})();
+
+/* ================= 小物（シーンの演出アイテム） ================= */
+const PROP = (() => {
+  const wrap = document.getElementById('props');
+  return {
+    show(files){
+      wrap.innerHTML = '';
+      files.forEach((f, i) => {
+        const d = document.createElement('div');
+        d.className = 'prop';
+        d.style.left = (54 + i * 22) + '%';
+        d.style.height = (22 - i * 5) + '%';
+        d.innerHTML = `<img src="${ASSET}${f}">`;
+        wrap.appendChild(d);
+        d.animate([{transform:'translateX(70vw)', opacity:.4},{transform:'translateX(0)', opacity:1}],
+                  {duration:650, easing:'cubic-bezier(.2,.8,.3,1)'});
+      });
+    },
+    clear(){
+      [...wrap.children].forEach(d => {
+        d.animate([{opacity:1},{opacity:0}],{duration:350,fill:'forwards'});
+      });
+      setTimeout(() => { wrap.innerHTML = ''; }, 380);
+    }
+  };
+})();
+
+/* ================= ストーリーズ式チャプター進捗（IG/Telegramの型） ================= */
+const STORY = (() => {
+  const el = document.getElementById('storybar');
+  const TOTAL = 8;  // 導入/プロフィール/思い出/ひみつ/スルリム/診断とGIFT/予約/受け取り
+  el.innerHTML = Array(TOTAL).fill('<span></span>').join('');
+  const segs = [...el.children];
+  return { set(n){ segs.forEach((s, i) => s.classList.toggle('done', i < n)); } };
+})();
+
+/* ================= 会話・選択肢UI ================= */
+const UI = (() => {
+  const nameEl = document.getElementById('talkName');
+  const textEl = document.getElementById('talkText');
+  const chEl = document.getElementById('choices');
+  let typeTimer = null, fullText = '';
+  function say(name, text){
+    nameEl.textContent = name;
+    fullText = text;
+    const talk = textEl.closest('.talk');
+    // 自動フィット: 全文で測ってから打ち始める（見切れ防止）
+    textEl.innerHTML = text;
+    let size = 14.5;
+    textEl.style.fontSize = size + 'px';
+    while (talk.scrollHeight > talk.clientHeight + 2 && size > 12.5) {  // 可読性の下限12.5px
+      size -= 0.5;
+      textEl.style.fontSize = size + 'px';
+    }
+    // タイプライター表示（タグは瞬時・文字は1つずつ）
+    clearInterval(typeTimer);
+    const tokens = text.match(/<[^>]+>|[\s\S]/g) || [];
+    let i = 0, out = '';
+    textEl.innerHTML = '';
+    typeTimer = setInterval(() => {
+      while (i < tokens.length && tokens[i].startsWith('<')) out += tokens[i++];
+      if (i < tokens.length) out += tokens[i++];
+      textEl.innerHTML = out;
+      if (i % 4 === 0) SND.blip();
+      if (i >= tokens.length) { clearInterval(typeTimer); typeTimer = null; }
+    }, 26);
+    talk.scrollTop = 0;
+  }
+  // 会話帯タップで全文スキップ
+  document.querySelector('.talk').addEventListener('click', () => {
+    if (typeTimer) {
+      clearInterval(typeTimer); typeTimer = null;
+      textEl.innerHTML = fullText;
+    }
+  });
+  function progress(cur, total){  // Q1〜Q4の進捗ドット（0で非表示）
+    const d = document.getElementById('qdots');
+    d.textContent = cur ? '●'.repeat(cur) + '○'.repeat(total - cur) : '';
+  }
+  function buttons(items){  // items: [{label, value}] → Promise<value>
+    return new Promise(res => {
+      chEl.innerHTML = '';
+      let picked = false;  // 素早い2連タップでタイマーが二重に走り、次の質問のUIを消す事故を防ぐ
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.innerHTML = it.label;
+        b.onclick = () => {
+          if (picked) return;
+          picked = true;
+          SND.tap();
+          b.classList.add('sel');  // 選択状態を一瞬見せてから進む（Noom式）
+          setTimeout(() => { chEl.innerHTML = ''; res(it.value); }, 220);
+        };
+        chEl.appendChild(b);
+      });
+    });
+  }
+  function multi(items, okLabel){  // 複数選択 → Promise<value[]>
+    return new Promise(res => {
+      chEl.innerHTML = '';
+      const sel = new Set();
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.innerHTML = it.label;
+        b.onclick = () => {
+          SND.tap();
+          if (sel.has(it.value)) { sel.delete(it.value); b.classList.remove('sel'); }
+          else { sel.add(it.value); b.classList.add('sel'); }
+          ok.style.display = sel.size ? 'block' : 'none';
+        };
+        chEl.appendChild(b);
+      });
+      const ok = document.createElement('button');
+      ok.className = 'multiOk'; ok.textContent = '▶ これで決定！'; ok.style.display = 'none';
+      ok.onclick = () => { SND.tap(); chEl.innerHTML = ''; res([...sel]); };
+      chEl.appendChild(ok);
+    });
+  }
+  function tapNext(label){
+    return new Promise(res => {
+      chEl.innerHTML = '';
+      const b = document.createElement('button');
+      b.className = 'tapNext'; b.innerHTML = label || '▶ タップですすむ';
+      b.onclick = () => { SND.tap(); chEl.innerHTML = ''; res(); };
+      chEl.appendChild(b);
+    });
+  }
+  // カレンダー（今日以降14日・最大maxSel日選択・選択順=希望順）
+  function calendar(maxSel){
+    return new Promise(res => {
+      chEl.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'cal';
+      const today = new Date();
+      const first = new Date(today.getTime() + 86400000);  // 明日から
+      wrap.innerHTML = `<div class="mon">${first.getMonth()+1}月</div>` +
+        '日月火水木金土'.split('').map(d => `<div class="dow">${d}</div>`).join('') +
+        Array(first.getDay()).fill('<div></div>').join('');
+      const sel = [];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(first.getTime() + i * 86400000);
+        const b = document.createElement('button');
+        b.textContent = d.getDate();
+        if (d.getDate() === 1 && i > 0) {
+          const m = document.createElement('div');
+          m.className = 'mon'; m.textContent = (d.getMonth()+1) + '月';
+          wrap.appendChild(m);
+          for (let k = 0; k < d.getDay(); k++) wrap.appendChild(document.createElement('div'));
+        }
+        const val = `${d.getMonth()+1}/${d.getDate()}`;
+        b.onclick = () => {
+          SND.tap();
+          const idx = sel.indexOf(val);
+          if (idx >= 0) { sel.splice(idx, 1); b.classList.remove('sel'); }
+          else if (sel.length < maxSel) { sel.push(val); b.classList.add('sel'); }
+          [...wrap.querySelectorAll('button.sel')].forEach(btn => {
+            const v = btn.__val;
+            btn.dataset.ord = sel.indexOf(v) + 1;
+          });
+          ok.style.display = sel.length ? 'block' : 'none';
+        };
+        b.__val = val;
+        wrap.appendChild(b);
+      }
+      chEl.appendChild(wrap);
+      const ok = document.createElement('button');
+      ok.className = 'multiOk'; ok.textContent = '▶ この日程で決定！'; ok.style.display = 'none';
+      ok.onclick = () => { SND.tap(); chEl.innerHTML = ''; res(sel); };
+      chEl.appendChild(ok);
+    });
+  }
+  // 時間プルダウン（常に第1〜第3希望の3枠。カレンダー未選択の枠は日付も選べる）
+  function timePick(dates){
+    return new Promise(res => {
+      chEl.innerHTML = '';
+      const SEL_CSS = 'flex:1;padding:11px 8px;border-radius:10px;border:2px solid #f0cfdd;font-family:inherit;font-weight:800;color:#5c4a52;background:#fff;font-size:13.5px;min-width:0;';
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding-top:4px;';
+      const dateOpts = [];
+      for (let i = 1; i <= 14; i++) {
+        const d = new Date(Date.now() + i * 86400000);
+        dateOpts.push({l: `${d.getMonth()+1}/${d.getDate()}（${'日月火水木金土'[d.getDay()]}）`, v: `${d.getMonth()+1}/${d.getDate()}`});
+      }
+      const rows = [];
+      const ok = document.createElement('button');
+      function update(){
+        const r1 = rows[0];
+        ok.style.display = (r1.timeSel.value && (r1.fixedDate || r1.dateSel.value)) ? 'block' : 'none';
+      }
+      for (let i = 0; i < 3; i++) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:7px;font-weight:900;color:#5c4a52;font-size:12.5px;';
+        const label = document.createElement('span');
+        label.style.cssText = 'white-space:nowrap;';
+        label.textContent = `第${i+1}希望`;
+        row.appendChild(label);
+        let dateSel = null;
+        if (dates[i]) {
+          const fixed = document.createElement('span');
+          fixed.style.cssText = 'white-space:nowrap;color:#c9557f;font-size:13.5px;';
+          fixed.textContent = dates[i];
+          row.appendChild(fixed);
+        } else {
+          dateSel = document.createElement('select');
+          dateSel.style.cssText = SEL_CSS + 'max-width:42%;';
+          dateSel.innerHTML = '<option value="">日にち</option>' + dateOpts.map(o => `<option value="${o.v}">${o.l}</option>`).join('');
+          dateSel.onchange = () => { SND.tap(); update(); };
+          row.appendChild(dateSel);
+        }
+        const timeSel = document.createElement('select');
+        timeSel.style.cssText = SEL_CSS;
+        let opts = '<option value="">時間</option>';
+        for (let h = 10; h < 20; h++) ['00','30'].forEach(mm => { opts += `<option>${h}:${mm}</option>`; });
+        timeSel.innerHTML = opts;
+        timeSel.onchange = () => { SND.tap(); update(); };
+        row.appendChild(timeSel);
+        wrap.appendChild(row);
+        rows.push({dateSel, timeSel, fixedDate: dates[i] || ''});
+      }
+      chEl.appendChild(wrap);
+      ok.className = 'multiOk'; ok.textContent = '▶ この内容で仮押さえ！'; ok.style.display = 'none';
+      ok.onclick = () => {
+        SND.tap();
+        const out = [];
+        rows.forEach(r => {
+          const d = r.fixedDate || (r.dateSel && r.dateSel.value);
+          if (d && r.timeSel.value) out.push({date: d, time: r.timeSel.value});
+        });
+        chEl.innerHTML = ''; res(out);
+      };
+      chEl.appendChild(ok);
+    });
+  }
+  return { say, buttons, multi, tapNext, progress, calendar, timePick };
+})();
+
+/* ================= 全画面ポップアップ ================= */
+const POP = (() => {
+  const el = document.getElementById('pop');
+  function show({title, html, btn}){
+    return new Promise(res => {
+      el.innerHTML = `<div class="pop__card">
+        ${title ? `<div class="pop__title">${title}</div>` : ''}
+        <div class="pop__body">${html}</div>
+        <button class="pop__btn">${btn || '▶ つづける'}</button>
+      </div>`;
+      el.classList.add('show');
+      // 中身がはみ出す場合は「スクロールできます」を明示
+      const body = el.querySelector('.pop__body');
+      requestAnimationFrame(() => {
+        if (body.scrollHeight > body.clientHeight + 4) {
+          const hint = document.createElement('div');
+          hint.className = 'scrollHint';
+          hint.textContent = '▼ 下にスクロールできます';
+          body.appendChild(hint);
+          body.addEventListener('scroll', () => hint.remove(), {once:true});
+        }
+      });
+      el.querySelector('.pop__btn').onclick = () => {
+        SND.tap();
+        el.classList.remove('show');
+        el.innerHTML = '';
+        res();
+      };
+    });
+  }
+  // カルーセル型カード（スワイプで送り・ボタンは1つ）
+  function carousel({title, cards, btn}){
+    return new Promise(res => {
+      const inner = cards.map(c => `<div>${c}</div>`).join('');
+      el.innerHTML = `<div class="pop__card">
+        ${title ? `<div class="pop__title">${title}</div>` : ''}
+        <div class="pop__body"><div class="caro">${inner}</div>
+          <div class="caroDots">${cards.map((_,i)=>`<span data-i="${i}">●</span>`).join('')}</div>
+          <div style="text-align:center;font-size:11px;color:#c39aae;font-weight:700;">← 横にスワイプ →</div>
+        </div>
+        <button class="pop__btn">${btn || '▶ つづける'}</button>
+      </div>`;
+      el.classList.add('show');
+      const caro = el.querySelector('.caro');
+      const dots = [...el.querySelectorAll('.caroDots span')];
+      const updateDots = () => {
+        const i = Math.min(cards.length - 1, Math.round(caro.scrollLeft / (caro.firstElementChild.offsetWidth + 10)));
+        dots.forEach((d, k) => { d.innerHTML = k === i ? '<b>●</b>' : '●'; });
+      };
+      caro.addEventListener('scroll', updateDots, {passive:true});
+      updateDots();
+      el.querySelector('.pop__btn').onclick = () => {
+        SND.tap(); el.classList.remove('show'); el.innerHTML = ''; res();
+      };
+    });
+  }
+  return { show, carousel };
+})();
+
+/* ================= 紙吹雪 ================= */
+function confetti(n){
+  const stage = document.getElementById('stage');
+  const colors = ['#ff8fb3','#f5b93c','#7ac97a','#8fb3ff','#e0679a','#ffd3e4'];
+  for (let i = 0; i < (n || 40); i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + '%';
+    c.style.background = colors[i % colors.length];
+    c.style.animationDuration = (1.8 + Math.random() * 1.6) + 's';
+    c.style.animationDelay = (Math.random() * .8) + 's';
+    stage.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+
+/* ================= スルリム撃退FX（注射器＋シェイク＋フラッシュ） ================= */
+function sururimFX(n){
+  const sy = document.getElementById('syringe');
+  const fl = document.getElementById('flash');
+  const app = document.getElementById('app');
+  sy.classList.add('in');
+  for (let k = 0; k < n; k++) {
+    setTimeout(() => {
+      sy.classList.add('jab');
+      fl.style.opacity = '.65';
+      app.classList.add('shake');
+      setTimeout(() => { sy.classList.remove('jab'); fl.style.opacity = '0'; }, 140);
+      setTimeout(() => { app.classList.remove('shake'); }, 330);
+    }, 300 + k * 330);
+  }
+  setTimeout(() => { sy.classList.remove('in'); }, 300 + n * 330 + 500);
+}
+
+/* ================= 全画面セレブレーション ================= */
+function banner(title, ms, img, sub){
+  return new Promise(res => {
+    const b = document.getElementById('banner');
+    b.querySelector('.bn__title').innerHTML = title;
+    b.querySelector('.bn__sub').innerHTML = sub || '';
+    const im = b.querySelector('.bn__badge img');
+    im.src = ASSET + (img || 'fat_9_shometsu.webp');
+    b.classList.add('show');
+    SND.burst();
+    setTimeout(() => { b.classList.remove('show'); res(); }, ms || 2000);
+  });
+}
+
+/* ================= 24時間タイマー（チャット版/クエスト版とキー共通） ================= */
+const TIMER = (() => {
+  const el = document.getElementById('timer');
+  let iv = null;
+  function start(){
+    let target = parseInt(store.get('sururim_timer_target') || '0', 10);
+    if (!target || target < Date.now()) {
+      target = Date.now() + 24 * 3600 * 1000;
+      store.set('sururim_timer_target', String(target));
+    }
+    el.style.display = 'block';
+    // 秒を刻むカウントダウンは「広告疲れ」を誘発するため、静かな期限表示にする（N1パネル指摘 3/5）
+    const d = new Date(target);
+    const isTomorrow = d.getDate() !== new Date().getDate();
+    el.textContent = `特典の有効期限: ${isTomorrow ? 'あす' : '本日'} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}まで`;
+  }
+  return { start };
+})();
+
+/* ================= 脂肪タイプ診断（クエスト版ロジック移植・語彙を日常寄りに調整） ================= */
+function fatType(){
+  const tried = answers.diet_history || [];
+  const parts = answers.body_parts || [];
+  if (tried.length >= 2) return { name:'がんこ型しぼう',
+    desc:'いくつものダイエットを生きのびた<b>歴戦の脂肪</b>。運動や食事制限では脂肪細胞の<b>大きさ</b>しか変わらず、<b>数はそのまま</b>だったのが原因です。あなたの意思の弱さではありません。',
+    plan:'細胞の「数」そのものにアプローチする<b>スルリム式（最大35%破壊）</b>が近道です。' };
+  if (tried.length === 1) return { name:'ふっかつ型しぼう',
+    desc:'一度は小さくなっても、細胞が残っているかぎり<b>元に戻って（リバウンドして）</b>くるタイプ。がんばりがムダになりやすいのが特徴です。',
+    plan:'復活のもとである脂肪細胞ごと破壊し、<b>数を減らす</b>のが対策です。' };
+  if (parts.length >= 2) return { name:'ちらばり型しぼう',
+    desc:'複数の部位に分かれて陣取るタイプ。全身ダイエットでは<b>狙い撃ちしにくい</b>のが特徴です。',
+    plan:'1部位およそ15分の<b>ピンポイントケア</b>で、気になる部位から順に対策するのが近道です。' };
+  return { name:'かくれ型しぼう',
+    desc:'1か所にひそんで動かないタイプ。まわりは痩せても<b>そこだけ残りやすい</b>のが特徴です。',
+    plan:'弱点をねらった<b>ピンポイントケア（1部位およそ15分）</b>が最も刺さります。' };
+}
+
+/* ================= LINE URL構築（クエスト版と同方式・var_互換） ================= */
+function buildUrl(){
+  const v = CONFIG.VAR_IDS;
+  const p = new URLSearchParams();
+  const s = (k, val) => { if (val && (!Array.isArray(val) || val.length)) p.set(`var_${k}`, Array.isArray(val) ? val.join(',') : val); };
+  s(v.gender, answers.gender); s(v.age, answers.age);
+  s(v.body_parts, answers.body_parts); s(v.diet_history, answers.diet_history);
+  s(v.coupon, answers.coupon); s(v.clinic_area, answers.area); s(v.clinic, answers.clinic);
+  (answers.prefs || []).forEach((pref, i) => {
+    if (pref) { s(v['reserve_date' + (i+1)], pref.date); s(v['reserve_time' + (i+1)], pref.time); }
+  });
+  s(v.lp_source, CONFIG.LP_ID);
+  const base = CONFIG.REDIRECT_URL || `https://line.me/R/ti/p/@${CONFIG.BOT_BASIC_ID}`;
+  return `${base}?${p}`;
+}
+function openLine(){
+  try { if (window.gtag) gtag('event','conversion',{send_to:'LINE_ADD'}); if (window.fbq) fbq('track','Lead'); } catch(e){ console.warn('tracking error', e); }
+  window.location.href = buildUrl();
+}
+
+/* ================= 店舗データ（クエスト版から移植） ================= */
+const CLINICS = {
+  '北海道・東北':['札幌店（大通駅）','旭川店（旭川駅）','青森店（青森駅）','秋田店（秋田駅）','仙台店（仙台駅）','福島店（郡山駅）'],
+  '関東':['新宿店（新宿東口）','渋谷店（文化村通り）','銀座店（銀座駅）','池袋店（サンシャイン通り）','表参道店（表参道）','広尾店（広尾駅）','錦糸町店（錦糸町）','吉祥寺店（吉祥寺）','八王子店（八王子駅）','町田店（町田駅）','横浜駅前店（横浜駅）','川崎店（川崎駅）','藤沢店（藤沢駅）','海老名店（海老名駅）','大宮店（大宮駅）','浦和店（浦和駅）','川口店（川口駅）','川越店（川越駅）','千葉店（千葉駅）','柏店（柏駅）','松戸店（松戸駅）','水戸店（水戸駅）','宇都宮店（宇都宮駅）','高崎店（高崎駅）'],
+  '中部':['名古屋店（名古屋駅）','栄店（栄駅）','浜松店（新浜松駅）','静岡店（静岡駅北口）','新潟店（新潟駅）','長野店（長野駅）','金沢店（金沢駅）','岐阜店（名鉄岐阜駅）','四日市店（四日市駅）'],
+  '関西':['梅田店（梅田駅）','心斎橋店（心斎橋駅）','京都店（京都駅）','神戸三宮店（三宮駅）'],
+  '中国・四国':['広島店（立町駅）','高松店（高松駅）'],
+  '九州・沖縄':['福岡天神店（天神南駅）','熊本店（熊本駅）','鹿児島店（鹿児島中央駅）'],
+};
+
+/* ================= シナリオ（S1まで実装） ================= */
+async function story(){
+  STORY.set(1);
+  UI.say('', 'ある夜のこと。ゆいさんはベッドの中で、ぼんやり考えていました。');
+  await UI.tapNext();
+
+  UI.say('ゆい', '「……また体重、戻ってる。あんなに頑張ったのに」');
+  await UI.tapNext();
+
+  UI.say('ナレーション', 'その夜、ゆいさんは——これまでのダイエットの思い出を振り返りながら、ゆっくり眠りにつきました……。');
+  await UI.tapNext('▶ 夢の中へ');
+
+  // ここからは夢の中（部屋着のまま、どこへでも歩いていける）
+  await BG.change('bg_street.webp');
+  UI.say('ナレーション', 'ここは、ゆいさんの<b>夢の中</b>。今夜は<b>あなた</b>も一緒に、思い出の道を——少しだけ、歩いてみましょう。');
+  await UI.tapNext('▶ 一緒に歩く');
+
+  // Q1 性別（ゆいは歩き続けたまま答えてもらう）
+  STORY.set(2);
+  UI.progress(1, 4);
+  UI.say('ナレーション', 'まず教えてください。あなたは——');
+  answers.gender = await UI.buttons([
+    {label:'女性です', value:'女性'},
+    {label:'男性です', value:'男性'},
+  ]);
+
+  // Q2 年代
+  UI.progress(2, 4);
+  UI.say('ナレーション', 'ありがとうございます。年代はどちらですか？<br><small>（診断の精度が上がります）</small>');
+  answers.age = await UI.buttons([
+    {label:'20代', value:'20代'}, {label:'30代', value:'30代'},
+    {label:'40代', value:'40代'}, {label:'50代以上', value:'50代以上'},
+  ]);
+
+  // Q3 部位（複数）
+  UI.progress(3, 4);
+  UI.say('ナレーション', '鏡を見るたび気になるのは、どのあたりですか？<br><small>（当てはまるもの全部どうぞ）</small>');
+  answers.body_parts = await UI.multi([
+    {label:'アゴ下・フェイスライン', value:'アゴ下'},
+    {label:'二の腕', value:'二の腕'},
+    {label:'お腹（上部）', value:'上腹部'},
+    {label:'お腹（下部）', value:'下腹部'},
+    {label:'ウエスト・脇腹', value:'側腹部'},
+    {label:'太もも（外側）', value:'太もも外側'},
+    {label:'太もも（内側）', value:'太もも内側'},
+    {label:'お尻', value:'お尻'},
+    {label:'背中・ハミ肉', value:'背中'},
+  ]);  // チャット版の8部位＋お尻（きたおさん追加指示 2026-07-17）
+
+  // 選んだ部位のぶんだけ、脂肪くんがすでに憑いている演出
+  if (answers.body_parts.length) {
+    GIRL.stop();
+    UI.say('ナレーション', '……実は、もうお気づきかもしれません。いま選んだ部位のぶんだけ——<b>脂肪くんが、すでに一緒に歩いている</b>ことに。');
+    // 部位ぶんの脂肪くん（最大4匹まで＝後の失敗イベント分の枠を残す）
+    answers.body_parts.slice(0, 4).forEach((_, i) => setTimeout(() => FAT.add('S'), 700 + i * 450));
+    await UI.tapNext('▶ 気を取り直して進む');
+    GIRL.start();
+  }
+
+  // Q4 ダイエット歴（複数）→ S2の失敗街道の分岐に使う
+  UI.progress(4, 4);
+  UI.say('ナレーション', 'これまでに試したことがあるダイエット、正直に教えてください。');
+  answers.diet_history = await UI.multi([
+    {label:'食事制限（サラダだけ・置き換え）', value:'食事制限'},
+    {label:'運動・ジム', value:'運動'},
+    {label:'サプリ・酵素', value:'サプリ'},
+    {label:'エステ・マッサージ', value:'エステ'},
+    {label:'特になし', value:'なし'},
+  ]);  // チャット版のLステップ送信値と互換の5択（2026-07-16リサーチ反映）
+
+  // ===== S2 ダイエット失敗街道（Q4で選んだ思い出だけが出てくる） =====
+  STORY.set(3);
+  UI.progress(0, 0);
+  UI.say('ナレーション', '……正直にありがとうございます。それでは、その頑張りの思い出を、少しだけ一緒にたどってみましょう。');
+  await UI.tapNext();
+
+  const EVENTS = {
+    '食事制限': {
+      bg: 'bg_room.webp',
+      props: ['prop_8_salad.webp'],
+      intro: '『今日からサラダだけ！』と決めた日、ありませんでしたか？',
+      choices: [
+        {label:'3日は続いた', value:'a'},
+        {label:'初日の夜にはお腹グーグー', value:'b'},
+        {label:'「明日から」が口ぐせになった', value:'c'},
+      ],
+      result: 'ゆいさんも同じでした。数日後、体はガス欠でフラフラ。「もう限界！」——反動で、食欲が爆発してしまいました。',
+      pose: 'pose_4_naki.webp',
+      fat: 'M',
+      learn: '食事を極端に減らすと、体は<em>省エネモード</em>に切り替わります。消費カロリーまで減って、むしろ<b>やせにくい体</b>になってしまうんです。',
+    },
+    'ドカ食い': {  // 食事制限の連鎖イベント（我慢→反動を一続きの物語で見せる）
+      bg: 'bg_room.webp',
+      props: ['prop_7_fridge.webp','prop_4_conveni.webp'],
+      intro: 'その数日後、夜中の冷蔵庫の前——あの背徳感、ご存知ですよね？',
+      choices: [
+        {label:'気づいたら完食してた', value:'a'},
+        {label:'「明日から本気出す」と唱えた', value:'b'},
+        {label:'罪悪感でなかなか眠れなかった', value:'c'},
+      ],
+      result: '我慢していた分だけ、反動は大きくなります。この夜、ゆいさんの脂肪くんは<b>いつもより大きく</b>育ちました。',
+      pose: 'pose_2_shock.webp',
+      fat: 'L',
+      learn: 'リバウンドのたびに、脂肪細胞は<em>パンパンに再肥大</em>します。我慢→反動のループが、実はいちばんの遠回りなんです。',
+    },
+    '運動': {
+      bg: 'bg_gym.webp',
+      props: ['prop_5_dumbbell.webp'],
+      intro: '入会金を払って、最初の月だけ通ったジム……心当たりはありませんか？',
+      choices: [
+        {label:'筋肉痛で3日目に挫折', value:'a'},
+        {label:'予定が合わなくて幽霊会員', value:'b'},
+        {label:'ウェアだけ可愛いのが揃った', value:'c'},
+      ],
+      result: '続かないのは、意志が弱いからではありません。でも、やめた途端に体重はじわじわ元通り……。',
+      pose: 'pose_3_onaka.webp',
+      fat: 'M',
+      learn: '運動で脂肪は<b>小さく</b>なります。でも脂肪細胞の<em>“数”はそのまま</em>。やめれば、元のサイズに戻るだけなんです。',
+    },
+    'サプリ': {
+      bg: 'bg_room.webp',
+      props: ['prop_6_scale.webp'],
+      intro: '「飲むだけでスッキリ」——そのサプリ、いま何袋目ですか？',
+      choices: [
+        {label:'飲んだ安心感で、つい食べちゃった', value:'a'},
+        {label:'効果を感じる前にやめた', value:'b'},
+        {label:'定期購入だけが続いている', value:'c'},
+      ],
+      result: '翌朝、体重計の数字は——昨日と同じ。「飲んだから大丈夫」の安心感だけが残りました。',
+      pose: 'pose_5_kangae.webp',
+      fat: 'M',
+      learn: 'サプリだけで脂肪細胞の<em>“数”が減ることはありません</em>。「飲んだから大丈夫」が、むしろ食欲の言い訳になりがちなんです。',
+    },
+    'エステ': {
+      bg: 'bg_room.webp',
+      props: ['prop_1_sofa.webp'],
+      intro: 'エステ帰りの、あの「痩せた気がする」——覚えがありませんか？',
+      choices: [
+        {label:'翌朝、体重は変わってなかった', value:'a'},
+        {label:'回数券が余ったまま期限切れ', value:'b'},
+        {label:'気持ちよくて寝てただけだった', value:'c'},
+      ],
+      result: '施術後はスッキリ。でも数日たつと、シルエットはいつも通りに……。',
+      pose: 'pose_5_kangae.webp',
+      fat: 'M',
+      learn: 'エステで流れるのは主に<em>水分（むくみ）</em>。脂肪細胞そのものの数は変わらないため、数日で戻りやすいんです。',
+    },
+    '甘いもの': {  // 全員共通のフィナーレイベント（夢の散歩は必ず街に出る）
+      bg: 'bg_street.webp',
+      props: ['prop_2_parfait.webp','prop_3_cake.webp'],
+      intro: 'そして誰にでもある——がんばった日の、ご褒美スイーツ。先週は何回ありましたか？',
+      choices: [
+        {label:'ご褒美が毎日になってた', value:'a'},
+        {label:'別腹は実在すると思う', value:'b'},
+        {label:'「シェアしよ」と言って1人で完食', value:'c'},
+      ],
+      result: 'ご褒美は、悪いことではありません。ただ——脂肪くんにとってもご褒美だった。それだけのことでした。',
+      pose: 'pose_5_kangae.webp',
+      fat: 'M',
+      learn: '糖は脂肪細胞の大好物。ご褒美のたびに、脂肪くんはこつこつ<em>“貯金”</em>を増やしていきます。',
+    },
+  };
+
+  // 再生キュー: 選んだもの(最大3つ)＋食事制限は反動ドカ食いへ連鎖＋甘いものは全員共通
+  const picked = answers.diet_history.filter(v => v !== 'なし').slice(0, 3);
+  const queue = [];
+  picked.forEach(k => { queue.push(k); if (k === '食事制限') queue.push('ドカ食い'); });
+  queue.push('甘いもの');
+
+  for (const key of queue) {
+    const ev = EVENTS[key];
+    if (!ev) continue;
+    await BG.change(ev.bg);
+    await GIRL.walk(1300);
+    GIRL.stop();
+    PROP.show(ev.props);
+    UI.say('思い出', ev.intro);
+    await UI.buttons(ev.choices);  // どちらを選んでも「あるある」に落ちる設計
+    GIRL.pose(ev.pose);            // リアクション（ガーン音と同時）
+    UI.say('ナレーション', ev.result);
+    await UI.tapNext();
+    FAT.add(ev.fat);
+    GIRL.unpose();
+    PROP.clear();
+    GIRL.start();                  // 学びは歩きながら（静止画時間を最小に）
+    UI.say('✎ まなび', ev.learn);
+    await UI.tapNext();
+  }
+
+  // ===== 街道の締め → S3への引き =====
+  await BG.change('bg_street.webp');
+  await GIRL.walk(1300);
+  GIRL.stop();
+  if (FAT.count() > 0) {
+    UI.say('ナレーション', `ふと振り返ると——あなたの後ろに、<b>脂肪くん×${FAT.count()}</b>。`);
+    await UI.tapNext();
+  }
+  GIRL.start();
+  UI.say('ナレーション', '……がんばってなかったわけじゃない。<b>やり方が、脂肪くんに効いていなかっただけ</b>なんです。');
+  await UI.tapNext('▶ その理由を知る');
+
+  // ===== S3 学習「脂肪くんのひみつ」（夕暮れの街を歩きながら） =====
+  STORY.set(4);
+  UI.say('ナレーション', 'ここで、ゆいさんが長年知らなかった<b>脂肪くんのひみつ</b>を、特別にお話しします。');
+  await UI.tapNext('▶ ひみつを聞く');
+
+  await POP.show({
+    title: '脂肪くんのひみつ',
+    html: '大人になってから、脂肪細胞の<b>“数”</b>はほとんど変わらないことが分かっています。<br>ダイエットで変わるのは、<b>“大きさ”だけ</b>。<div class="imgph">脂肪細胞の変化イメージ（画像・動画枠）<br>実素材が届いたら差し替え</div>',
+    btn: '▶ つまり…？'
+  });
+
+  const nFat = FAT.count();
+  FAT.shrinkAll();
+  UI.say('ナレーション', 'ダイエットをがんばると、脂肪くんはたしかに<b>小さく</b>なります。');
+  await UI.tapNext();
+  UI.say('ナレーション', nFat > 1
+    ? `でも……よく見てください。${nFat}匹いた脂肪くん、<b>1匹もいなくなってはいません</b>。`
+    : 'でも……よく見てください。小さくなっただけで、<b>いなくなってはいません</b>。');
+  await UI.tapNext();
+  FAT.restoreAll();
+  UI.say('ナレーション', 'そして食べれば、ぷくーっと元どおり。<br>——これが、<b>リバウンドの正体</b>です。');
+  await UI.tapNext();
+  GIRL.pose('pose_6_hirameki.webp');
+  UI.say('ゆい', '「じゃあ……脂肪くんの<b>“数”そのもの</b>を減らせたら、もう戻らないんじゃない？」');
+  await UI.tapNext('▶ その方法は…？');
+  GIRL.unpose();
+
+  // ===== S4 スルリム登場 =====
+  await BG.change('bg_clinic.webp');
+  GIRL.start();
+  await GIRL.walk(1500);
+  GIRL.stop();
+  STORY.set(5);
+  UI.say('ナレーション', 'あります。脂肪細胞を、<b>壊して、外に出す。</b><br>JUNOの<b>スルリム式・脂肪破壊術</b>です。');
+  await UI.tapNext('▶ え？スルリムって何？');
+
+  UI.say('ナレーション', '<b>韓国で大バズした施術</b>を、JUNOが日本人の体質に合わせて<em>独自にアップデート</em>したもの——それがスルリム式です。');
+  await UI.tapNext('▶ 安全性は？');
+
+  await POP.show({
+    title: 'はじめに、安心してください',
+    html: 'スルリム式 脂肪破壊術は<br><b style="font-size:19px;color:#e0426e;">10年無事故<small>※</small></b> で安全性の高い施術です。<div class="badges"><div>韓国で<br>独自開発</div><div>治験検証<br>済み</div><div>症例実績<br>15万人</div></div><small style="color:#a08694;">※期間: 2015/6/30-2025/6/30<br>※施術直後は一時的に腫れ感が出る場合があります</small>',
+    btn: '▶ くわしく知る'
+  });
+
+  const REASONS = [
+    ['1回で従来の約5回分', 'FDA承認のデオキシコール酸を高濃度配合。少ない回数で効果を実感いただけます。'],
+    ['脂肪細胞を最大35%破壊', '脂肪細胞の“数”自体を減らすため、リバウンドしにくい仕組みです。'],
+    ['1部位およそ15分', '切開不要・麻酔不要。お仕事帰りにも通えます。当日シャワーOK。'],
+    ['ダウンタイムほぼなし', '翌日からメイク可能。一時的な腫れや内出血は通常1〜2週間で改善します。'],
+    ['韓国で大バズの超人気メニュー', '韓国で爆発的に流行した施術を、JUNOが日本人の体質に合わせて独自にパワーアップ。'],
+  ];
+  await POP.carousel({
+    title: 'スルリムが選ばれる5つの理由',
+    cards: REASONS.map((r, i) =>
+      `<b style="font-size:15.5px;color:#c9557f;">${i+1}. ${r[0]}</b><div class="imgph">イメージ画像・動画枠<br>実素材が届いたら差し替え</div>${r[1]}`),
+    btn: '▶ なるほど…！'
+  });
+
+  const fatN = FAT.count();
+  if (fatN > 0) {
+    UI.say('ナレーション', 'それでは——ゆいさんの後ろの脂肪くんたちで、<b>実際にお見せしましょう</b>。');
+    await UI.tapNext('▶ スルリム注射！');
+    sururimFX(fatN);                          // 注射器＋シェイク＋フラッシュ
+    setTimeout(() => FAT.burstAll(), 300);    // 注射のタイミングに合わせて破裂
+    await new Promise(r => setTimeout(r, 300 + fatN * 330 + 1300));
+  }
+  await banner('脂肪細胞 最大35% はかい！', 2300, 'fat_9_shometsu.webp', 'つぶれた脂肪細胞は、体の外へ');
+  UI.say('ナレーション', '小さくするのではなく、<b>数ごと、いなくなる</b>。<br>だから「<b>リバウンド知らずの脂肪破壊術</b>」なんです。');
+  await UI.tapNext();
+  const BA_CASES = [
+    ['CASE 01｜20代・お腹まわり', '2か月で「あのデニム」が入るように'],
+    ['CASE 02｜30代・二の腕', 'ノースリーブを買い足した夏に'],
+    ['CASE 03｜40代・アゴ下', '横顔の写真、逃げなくなりました'],
+  ];
+  await POP.carousel({
+    title: 'みんなのビフォー・アフター',
+    cards: BA_CASES.map(c =>
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffb7d2,#e0679a);"></span>
+        <b style="font-size:12.5px;">${c[0]}</b>
+      </div>
+      <div class="imgph" style="padding:44px 10px;">症例写真（Before/After）枠<br>実素材が届いたら差し替え</div>
+      <div style="font-size:12.5px;font-weight:800;color:#8a6e7b;">♡ ${c[1]}</div>
+      <small style="color:#b59aa8;">※個人の感想です。効果には個人差があります</small>`),
+    btn: '▶ あなたの場合は？'
+  });
+
+  // ===== S5 脂肪タイプ診断書 =====
+  STORY.set(6);
+  const ft = fatType();
+  await POP.show({
+    title: 'あなたの脂肪タイプ 診断書',
+    html: `<div class="karte"><div class="karte__type">${ft.name}</div>
+      <div style="font-size:12px;color:#a08694;margin-bottom:6px;">気になる部位: ${answers.body_parts.join('・') || '—'} ／ 経験: ${answers.diet_history.join('・') || '—'}</div>
+      ${ft.desc}<br><br><b>対策:</b> ${ft.plan}</div>
+      <small style="color:#c9557f;font-weight:900;">※この診断書は、最後にLINEへ保存できます（保存しないと消えてしまいます）</small>`,
+    btn: '▶ つぎへ'
+  });
+
+  // ===== S6 特典（3枚ポンポン出現・タップは1回だけ） =====
+  // カードのpopin(delay+0.3sが山)に合わせて鳴らす
+  [450, 1100, 1750, 2400].forEach(t => setTimeout(() => SND.pop(), t));
+  await POP.show({
+    title: 'あなたに届いた 4つのGIFT',
+    html: `
+      <div class="gcard g1"><div class="gcard__num">GIFT 01｜7月末まで！サマーキャンペーン</div><div class="gcard__t">1部位目</div><div class="gcard__d"><span class="price__old">定価 74,800円 → 9,800円</span>　<span class="price__now">4,900円</span></div></div>
+      <div class="gcard g2"><div class="gcard__num">GIFT 02</div><div class="gcard__t">2部位目以降も特別価格</div><div class="gcard__d">何部位でも <b>14,800円</b> <small>※1部位のみでもOK</small></div></div>
+      <div class="gcard g3"><div class="gcard__num">GIFT 03</div><div class="gcard__t">人気の美容施術が1つ無料</div><div class="gcard__d">飲む医療ダイエット・ボツリヌス施術・美容内服薬などから選べます</div></div>
+      <div class="gcard g4"><div class="gcard__num">GIFT 04</div><div class="gcard__t">優先仮押さえ権</div><div class="gcard__d"><b>このページ限定</b>で、人気枠を含めた優先的な仮押さえができます</div></div>`,
+    btn: '▶ すべて受け取る'
+  });
+  answers.coupon = '夏の3大特典';
+  TIMER.start();
+  UI.say('ナレーション', 'このGIFTは、<em>24時間以内にLINEのトーク画面で受け取る</em>と有効になります（有効期限は画面上部に表示しています）。');
+  await UI.tapNext();
+  UI.say('ナレーション', '現在スルリム式は大変混み合っていて、<em>人気の時間帯は1〜2週間待ち</em>になることも。ですが、GIFT 04の権利で——<em>このページ限定の優先仮押さえ</em>ができます。<br><small>（無料・キャンセル自由です）</small>');
+  await UI.tapNext('▶ 優先仮押さえをする');
+
+  // ===== S7 優先予約（仮押さえ・必須） =====
+  // ⚠この案件は「予約先行型」（事前予約つき送客＝高単価）。通常LINE追加のみの導線は作らない（きたおさん指示 2026-07-16）
+  //   代わりに「1/3→2/3→3/3」の進捗表示で体感の重さを軽減する（N1パネル4/5指摘への対応）
+  STORY.set(7);
+  UI.say('ナレーション', '施術は<b>1部位およそ15分</b>で完了。お仕事帰りや<b>スキマ時間の活用</b>も人気です。——お住まいのエリアはどちらですか？<br><small>（仮押さえ 1／3）</small>');
+  answers.area = await UI.buttons(Object.keys(CLINICS).map(a => ({label: a, value: a})));
+  UI.say('ナレーション', 'お近くの院をお選びください。<br><small>（仮押さえ 2／3）</small>');
+  answers.clinic = await UI.buttons(CLINICS[answers.area].map(c => ({label: c, value: c})));
+
+  UI.say('ナレーション', 'あと少し！ご希望の日にちを<b>最大3つ</b>までタップしてください。<br><small>（仮押さえ 3／3・タップした順＝第1〜第3希望）</small>');
+  const dates = await UI.calendar(3);
+  UI.say('ナレーション', 'それぞれの<b>ご希望の時間</b>をお選びください。<br><small>（第3希望まで入れておくと、確定がスムーズです）</small>');
+  answers.prefs = await UI.timePick(dates);
+  UI.say('ナレーション', `<b>${answers.clinic}</b> でのご希望、お預かりしました。<em>LINE追加で仮押さえが確定</em>します。<br><small>※無料・キャンセル自由。確定のご連絡はLINEでお届けします</small>`);
+  await UI.tapNext();
+
+  // ===== S8 クリア → LINE =====
+  STORY.set(8);
+  GIRL.start();
+  UI.say('ナレーション', '長かった思い出の散歩も、もうすぐおしまいです。');
+  await GIRL.walk(1800);
+  GIRL.pose('pose_8_guts.webp');
+  confetti(52);
+  await banner('思い出の散歩 クリア！', 2300, 'pose_8_guts.webp', '2026年夏・答え合わせ 完了');
+  await POP.show({
+    title: 'あなたが手に入れたもの',
+    html: `✔ 脂肪タイプ診断書（${ft.name}）<br>✔ GIFT 01: 1部位目 4,900円<br>✔ GIFT 02: 2部位目以降 14,800円<br>✔ GIFT 03: 人気施術1つ無料<br>${answers.clinic ? `✔ ${answers.clinic} の仮押さえ` : '✔ GIFT 04: 優先仮押さえ権（LINEから使えます）'}<br><br><b style="color:#c9557f;">LINE追加で、すべて受け取れます。</b><br><small>診断書の保存・特典チケットの発行・仮押さえの確定連絡が届きます</small>`,
+    btn: '▶ 受け取りに進む'
+  });
+  // クロージング（社会的証明 → 損失回避 → 安心 → CTA）
+  UI.say('ナレーション', 'この診断を受けた方の<em>9割以上</em>が、あなたと同じ悩みを抱えていました。そして——<b>変わりはじめた人から、夏を楽しんでいます</b>。');
+  await UI.tapNext();
+  UI.say('ナレーション', '特典チケットは<em>24時間で消え、1部位目は元の金額に戻ります</em>。受け取りは<b>LINE追加だけ・約10秒</b>。カウンセリングは無料で、<b>無理な勧誘は一切ありません</b>。');
+  await UI.tapNext();
+  UI.say('ナレーション', 'スルリムは、<b>痩せたいけど食べたい</b>——運動や食事制限なしで変わりたい、そんな方のための施術です。脂肪細胞の“数”から変えて、<em>食べても戻りにくい体へ</em>。');
+  await UI.tapNext();
+  UI.say('ナレーション', 'この夏は思う存分、<em>脂肪を破壊して体の外へ</em>出しましょう。');
+  await UI.tapNext();
+  confetti(30);
+  UI.say('ゆい', '「がんばり方を、変えるだけ。<em>今年の夏は、我慢しないで楽しみましょ</em>」');
+  const chFinal = document.getElementById('choices');
+  chFinal.innerHTML = `
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+      ${['カウンセリング無料','無理な勧誘なし','通知オフ・ブロック自由'].map(t =>
+        `<span style="font-size:10.5px;font-weight:900;color:#5e8f68;background:#eef7ef;border-radius:999px;padding:5px 10px;">✓ ${t}</span>`).join('')}
+    </div>
+    <div style="text-align:center;font-size:12.5px;font-weight:900;color:#8a6e7b;">診断書と4つのGIFTを <b style="color:#06C755;">LINEで送信</b></div>`;
+  const lb = document.createElement('button');
+  lb.className = 'lineBtn';
+  lb.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M19.365 10.41C19.365 7.103 16.043 4.42 11.96 4.42c-4.083 0-7.404 2.683-7.404 5.99 0 2.963 2.632 5.444 6.183 5.915.241.052.569.159.651.364.074.186.048.478.024.667l-.105.631c-.033.186-.148.73.638.398.786-.332 4.243-2.498 5.79-4.277 1.068-1.17 1.629-2.358 1.629-3.698z" fill="currentColor"/></svg>LINEで受け取る`;
+  lb.onclick = openLine;
+  chFinal.appendChild(lb);
+  const micro = document.createElement('div');
+  micro.style.cssText = 'text-align:center;font-size:11px;font-weight:800;color:#a08694;';
+  micro.textContent = 'タップするとLINEの友だち追加画面が開きます（約10秒）';
+  chFinal.appendChild(micro);
+
+  // 注釈（ボタン下をスクロールで表示・チャット版フッター準拠）
+  const fine = document.createElement('div');
+  fine.style.cssText = 'margin-top:16px;padding:12px 4px 22px;border-top:1px solid #f3e6ec;font-size:9.5px;line-height:1.9;color:#c2b3ba;font-weight:500;';
+  fine.innerHTML =
+    '※自由診療（保険適用外）／表示価格はすべて税込です<br>' +
+    '※副作用: 内出血・腫れ・鈍痛（通常1〜2週間で改善します）<br>' +
+    '※効果には個人差があります<br>' +
+    '※GIFT 01は1部位目、GIFT 02は2部位目以降の価格です（1部位のみのご利用も可能です）<br>' +
+    '※特典・価格は予告なく変更される場合があります。最新の情報は公式サイトをご確認ください<br>' +
+    '<span style="display:inline-block;margin-top:6px;"><a href="#" style="color:#c2b3ba;">運営者情報</a>　<a href="#" style="color:#c2b3ba;">プライバシーポリシー</a></span><br>' +
+    'JUNO BEAUTY CLINIC';
+  chFinal.appendChild(fine);
+}
+
+/* ================= 起動 ================= */
+function boot(withSound){
+  SND.unlock(withSound);
+  document.getElementById('muteBtn').textContent = withSound ? '♪' : '×';
+  document.getElementById('gate').remove();
+  story();
+}
+window.addEventListener('load', () => {
+  BG.load('bg_room.webp');
+  GIRL.start();  // ゲートの背後でも歩いている（「ちゃんと作ってある」感）
+  // 全素材の事前読み込み（WebP化で計約1.2MB。場面転換・演出の白抜けを防ぐ）
+  setTimeout(() => {
+    [
+      'bg_street.webp','bg_gym.webp','bg_clinic.webp',
+      'pose_2_shock.webp','pose_3_onaka.webp','pose_4_naki.webp','pose_5_kangae.webp','pose_6_hirameki.webp','pose_7_おねがい.webp','pose_8_guts.webp',
+      'fat_1_s.webp','fat_3_l.webp','fat_4_niyari.webp','fat_5_warai.webp','fat_6_dakitsuki.webp','fat_8_haretsu.webp','fat_9_shometsu.webp',
+      'prop_1_sofa.webp','prop_2_parfait.webp','prop_3_cake.webp','prop_4_conveni.webp','prop_5_dumbbell.webp','prop_6_scale.webp','prop_7_fridge.webp','prop_8_salad.webp',
+    ].forEach(f => { const im = new Image(); im.src = ASSET + f; });
+  }, 800);
+});
+window.addEventListener('resize', () => {
+  BG.load('bg_room.webp');
+});
+// タップ位置から「ほわん」を出す（全ボタン共通・イベント委任）
+document.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('.choices > button, .pop__btn, .gate__btns button, .lineBtn');
+  if (!b) return;
+  const r = b.getBoundingClientRect();
+  const d = Math.max(r.width, r.height) * 0.9;
+  const s = document.createElement('span');
+  s.className = 'ripple';
+  s.style.width = s.style.height = d + 'px';
+  s.style.left = ((e.clientX || (r.left + r.width/2)) - r.left - d/2) + 'px';
+  s.style.top = ((e.clientY || (r.top + r.height/2)) - r.top - d/2) + 'px';
+  b.appendChild(s);
+  setTimeout(() => s.remove(), 700);
+});
+
+document.getElementById('startSound').onclick = () => boot(true);
+document.getElementById('startMute').onclick = () => boot(false);
+document.getElementById('muteBtn').onclick = function(){
+  const m = !SND.isMuted();
+  SND.setMuted(m);
+  this.textContent = m ? '×' : '♪';
+};
+</script>
+</body>
+</html>

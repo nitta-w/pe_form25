@@ -1,0 +1,717 @@
+@charset "utf-8";
+
+.js-tc {
+  border: 1px solid #eee;
+  background-color: #fff;
+  font-size: 14px;
+  letter-spacing: 0;
+  position: relative;
+  min-height: 300px;
+}
+
+/************************************
+ *
+ * カレンダー 本体
+ *
+ ************************************/
+.js-tc-body__body {
+  max-height: 310px;
+  overflow-y: scroll;
+  position: relative;
+  text-align: center;
+  font-size: 11px;
+  /* -webkit-mask-image: linear-gradient(to top, transparent, black 50px);
+  mask-image: linear-gradient(to top, transparent, black 50px); */
+}
+
+/* スクロール最下部到達時に付与 */
+.js-tc-body__body.is-scroll-end {
+  /* -webkit-mask-image: none;
+  mask-image: none; */
+}
+
+.js-tc-body__body-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+/* スクロール到達用の要素（JSで参照） */
+.js-tc-body__scroll-sentinel {
+  height: 0;
+  background-color: #fff;
+  visibility: hidden;
+}
+
+.js-tc-body__time-warp {
+  width: 45px;
+  border-right: 1px solid #D8D8D8;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+@media screen and (min-width: 1024px) {
+  .js-tc-body__time-warp {
+    width: 55px;
+  }
+}
+
+.js-tc-body__time-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  font-size: 11px;
+  letter-spacing: .5px;
+  font-weight: bold;
+  color: #888;
+}
+
+/* 璃枠数の表示有効時に付与 */
+.js-tc-body__time-warp.is-tall .js-tc-body__time-item {
+  height: 50px;
+}
+
+.js-tc-body__time-item:not(:last-child) {
+  border-bottom: 1px solid #D8D8D8;
+}
+
+.js-tc-body__time-item-blank {
+  height: 40px;
+  border-bottom: 1px solid #D8D8D8;
+  background-color: #f9fafb;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.js-tc-body__table-warp {
+  width: calc(100% - 45px);
+  flex: 1;
+}
+
+.js-tc-body__table {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .7s;
+}
+
+.js-tc-body__table-item {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.js-tc-body__table-column {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-direction: column;
+  width: calc(100% / 7);
+  font-size: 13px;
+}
+
+/* 土曜 */
+/* .js-tc-body__table-column.is-sat {
+  background-color: #F0F8FD;
+} */
+
+/* 日曜 */
+/* .js-tc-body__table-column.is-sun {
+  background-color: #fef7f8;
+} */
+
+/* 祝日 */
+/* .js-tc-body__table-column.is-holiday {
+  background-color: #fef7f8;
+} */
+
+.js-tc-body__table-column {
+  border-right: 1px solid #D8D8D8;
+}
+
+.js-tc-body__table-cell-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  height: 40px;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 1px solid #D8D8D8;
+  background-color: #f9fafb;
+  font-size: 10px;
+  position: sticky;
+  top: 0;
+
+  z-index: 1;
+}
+
+@media screen and (min-width: 1024px) {
+  .js-tc-body__table-cell-day {
+    font-size: 12px;
+  }
+}
+
+/* 土曜 */
+.js-tc-body__table-column.is-sat .js-tc-body__table-cell-day {
+  color: #2B87C4;
+}
+
+/* 日曜 */
+.js-tc-body__table-column.is-sun .js-tc-body__table-cell-day {
+  color: #DE4949;
+}
+
+/* 祝日 */
+.js-tc-body__table-column.is-holiday .js-tc-body__table-cell-day {
+  color: #DE4949;
+}
+
+.js-tc-body__table-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  text-align: center;
+  position: relative;
+}
+
+/* 璃枠数の表示有効時に付与 */
+.js-tc-body__table-cell.is-tall {
+  height: 50px;
+}
+
+.js-tc-body__table-cell:not(:last-child) {
+  border-bottom: 1px solid #D8D8D8;
+}
+
+.js-tc-body__table-cell-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 86%;
+  height: 80%;
+  border: 1px solid #D8D8D8;
+  border-radius: 6px;
+}
+
+.js-tc-body__table-cell .js-tc-body__table-cell-inner::before {
+  /* display: block;
+  content: "";
+  width: 20px;
+  height: 20px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain; */
+}
+
+/* 選択中 */
+.js-tc-body__table-cell.is-checked .js-tc-body__table-cell-inner {
+  background-color: #06c755;
+  border-color: #06c755;
+}
+
+/* 選択中のアイコン装飾（クーポンアイコン以外） */
+.js-tc-body__table-cell.is-checked:not(.is-coupon) .js-tc-body__table-cell-inner::before {
+  /* background-color: #EF4B7D; */
+}
+
+/* 選択可能（◎、△） */
+.js-tc-body__table-cell.is-allow:not(.is-disabled) {
+  cursor: pointer;
+}
+
+/* 選択不可 */
+.js-tc-body__table-cell.is-disabled {
+  cursor: not-allowed;
+}
+
+/* 選択不可 */
+.js-tc-body__table-cell.is-disallow .js-tc-body__table-cell-inner {
+  background-image: linear-gradient(45deg, #fafafa 25%, #ededed 25%, #ededed 50%, #fafafa 50%, #fafafa 75%, #ededed 75% 75%, #ededed 100%);
+  background-size: 10px 10px;
+  border: none;
+  cursor: not-allowed;
+}
+
+/* クーポン */
+.js-tc-body__table-cell.is-coupon .js-tc-body__table-cell-inner::before {
+  width: 22px;
+  height: 22px;
+  -webkit-mask-image: url(./img/icon__schedule-coupon.svg);
+  mask-image: url(./img/icon__schedule-coupon.svg);
+  background-color: #ff2c37;
+}
+
+/* ◎ */
+.js-tc-body__table-cell.is-available .js-tc-body__table-cell-inner::before {
+  /* -webkit-mask-image: url(./img/icon__schedule-available.svg);
+  mask-image: url(./img/icon__schedule-available.svg);
+  background-color: #d76789; */
+}
+
+/* △ */
+.js-tc-body__table-cell.is-pending .js-tc-body__table-cell-inner::before {
+  /* -webkit-mask-image: url(./img/icon__schedule-pending.svg);
+  mask-image: url(./img/icon__schedule-pending.svg);
+  background-color: #72A6C1; */
+}
+
+/* × */
+.js-tc-body__table-cell.is-unavailable .js-tc-body__table-cell-inner {
+  /* background-image: linear-gradient(45deg, #fafafa 25%, #ededed 25%, #ededed 50%, #fafafa 50%, #fafafa 75%, #ededed 75% 75%, #ededed 100%);
+  background-size: 10px 10px;
+  border: none;
+  cursor: not-allowed; */
+}
+
+.js-tc-body__table-cell.is-unavailable .js-tc-body__table-cell-inner::before {
+  /* -webkit-mask-image: url(./img/icon__schedule-unavailable.svg);
+  mask-image: url(./img/icon__schedule-unavailable.svg);
+  background-color: #6f6f6f; */
+}
+
+/* - */
+.js-tc-body__table-cell.is-unknown .js-tc-body__table-cell-inner {
+  /* background-image: linear-gradient(45deg, #fafafa 25%, #ededed 25%, #ededed 50%, #fafafa 50%, #fafafa 75%, #ededed 75% 75%, #ededed 100%);
+  background-size: 10px 10px;
+  border: none;
+  cursor: not-allowed; */
+}
+
+.js-tc-body__table-cell.is-unknown .js-tc-body__table-cell-inner::before {
+  /* display: flex;
+  justify-content: center;
+  align-items: center;
+  content: "-"; */
+}
+
+/* 空き枠 */
+.js-tc-body__table-cell-count {
+  font-size: 11px;
+  color: #767676;
+}
+
+/* 選択中ラベル */
+.js-tc-body__table-cell-selected-num {
+  width: 11px;
+  height: 11px;
+  line-height: 11px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #EF4B7D;
+  color: #fff;
+  font-size: 8px;
+}
+
+/************************************
+ *
+ * ローダー
+ *
+ ************************************/
+.js-tc-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.js-tc-loading__inner {
+  width: 35px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 4px solid #EF4B7D;
+  -webkit-animation:
+    spin-1 1s infinite linear alternate,
+    spin-2 2s infinite linear;
+  animation:
+    spin-1 1s infinite linear alternate,
+    spin-2 2s infinite linear;
+}
+
+.js-tc-loading.is-visible {
+  height: 100%;
+  -webkit-animation: tcFadeIn .1s forwards ease-out;
+  animation: tcFadeIn .1s forwards ease-out;
+}
+
+/************************************
+ *
+ * 代替メッセージ
+ *
+ ************************************/
+.js-tc-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  visibility: hidden;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.js-tc-message.is-visible {
+  height: 100%;
+  -webkit-animation: tcFadeIn .1s forwards ease-out;
+  animation: tcFadeIn .1s forwards ease-out;
+}
+
+.js-tc-message__inner a {
+  color: #2b83ee;
+}
+
+.js-tc-message__em-text {
+  font-weight: bold;
+}
+
+/************************************
+ *
+ * カレンダー下部 選択中日付
+ *
+ ************************************/
+.js-tc-list {
+  padding: 2rem 0;
+  font-size: 1.2rem;
+}
+
+.js-tc-list__item {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.js-tc-list__title {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 24%;
+  height: 3.7rem;
+  font-weight: bold;
+}
+
+.js-tc-list__content {
+  width: 80%;
+}
+
+.js-tc-list__content-inner {
+  width: 100%;
+  height: 3.7rem;
+  position: relative;
+}
+
+.js-tc-list__value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: 0 1rem;
+  border: 1px solid #D8D8D8;
+  border-radius: .7rem;
+  background-color: #FFFFFF;
+  color: #EF4B7D;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.js-tc-list__coupon {
+  display: block;
+  content: "";
+  width: 1.8rem;
+  height: 1.8rem;
+  margin-left: .2rem;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-image: url(./img/icon__schedule-coupon.svg);
+  mask-image: url(./img/icon__schedule-coupon.svg);
+  background-color: #ff2c37;
+}
+
+.js-tc-list__clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 100%;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  font-size: 2rem;
+  outline: none;
+}
+
+.js-tc-list__clear-btn-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: none;
+  border-radius: 100%;
+  background-color: #6f6f6f;
+}
+
+.js-tc-list__clear-btn-icon::after {
+  display: block;
+  content: "";
+  width: 66%;
+  height: 66%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-image: url(./img/icon__close.svg);
+  mask-image: url(./img/icon__close.svg);
+  background-color: #fff;
+  pointer-events: none;
+}
+
+.js-tc-list__clear-btn:focus {
+  outline: none;
+}
+
+.js-tc-list__clear-btn:disabled {
+  display: none;
+}
+
+/************************************
+ *
+ * ナビゲーター
+ *
+ ************************************/
+.js-tc-navigator {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
+  pointer-events: none;
+  padding: .2rem .6rem;
+  border-radius: 100px;
+  background-color: #767676;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+  opacity: .8;
+}
+
+.js-tc-navigator svg {
+  width: 14px;
+  height: 14px;
+  stroke: #ddd;
+}
+
+/************************************
+ *
+ * アニメーション
+ *
+ ************************************/
+@-webkit-keyframes tcFadeIn {
+  0% {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  100% {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+@keyframes tcFadeIn {
+  0% {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  100% {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes fadeOut {
+  0% {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  90% {
+    visibility: visible;
+    opacity: 0;
+  }
+
+  100% {
+    visibility: hidden;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  90% {
+    visibility: visible;
+    opacity: 0;
+  }
+
+  100% {
+    visibility: hidden;
+    opacity: 0;
+  }
+}
+
+@-webkit-keyframes spin-1 {
+  0% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%)
+  }
+
+  12.5% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%)
+  }
+
+  25% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  50% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  62.5% {
+    -webkit-clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  75% {
+    -webkit-clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  100% {
+    -webkit-clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0% 100%)
+  }
+}
+
+@keyframes spin-1 {
+  0% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 50% 0%, 50% 0%, 50% 0%, 50% 0%)
+  }
+
+  12.5% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 0%, 100% 0%, 100% 0%)
+  }
+
+  25% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%)
+  }
+
+  50% {
+    -webkit-clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 0 0, 50% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  62.5% {
+    -webkit-clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 100% 0, 100% 0%, 100% 0%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  75% {
+    -webkit-clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 50% 100%, 0% 100%)
+  }
+
+  100% {
+    -webkit-clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0% 100%);
+    clip-path: polygon(50% 50%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 50% 100%, 0% 100%)
+  }
+}
+
+@-webkit-keyframes spin-2 {
+  0% {
+    transform: scaleY(1) rotate(0deg)
+  }
+
+  49.99% {
+    transform: scaleY(1) rotate(135deg)
+  }
+
+  50% {
+    transform: scaleY(-1) rotate(0deg)
+  }
+
+  100% {
+    transform: scaleY(-1) rotate(-135deg)
+  }
+}
+
+@keyframes spin-2 {
+  0% {
+    transform: scaleY(1) rotate(0deg)
+  }
+
+  49.99% {
+    transform: scaleY(1) rotate(135deg)
+  }
+
+  50% {
+    transform: scaleY(-1) rotate(0deg)
+  }
+
+  100% {
+    transform: scaleY(-1) rotate(-135deg)
+  }
+}
