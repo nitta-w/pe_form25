@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="33" height="33" viewBox="0 0 33 33">
+  <defs>
+    <clipPath id="clip-path">
+      <rect id="bk" width="33" height="33" transform="translate(694 -2108)" fill="#cbcbcb"/>
+    </clipPath>
+  </defs>
+  <g id="icon__schedule-pending" transform="translate(-694 2108)">
+    <g id="マスクグループ_2" data-name="マスクグループ 2" clip-path="url(#clip-path)">
+      <path id="icon" d="M12-1.5a1.5,1.5,0,0,1,1.286.728l12,20A1.5,1.5,0,0,1,24,21.5H0a1.5,1.5,0,0,1-1.305-.761,1.5,1.5,0,0,1,.019-1.511l12-20A1.5,1.5,0,0,1,12-1.5Zm9.351,20L12,2.915,2.649,18.5Z" transform="translate(698.5 -2101.5)" fill="#bebebe"/>
+    </g>
+  </g>
+</svg>
