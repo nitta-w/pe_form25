@@ -23,7 +23,12 @@ approved: true
 | エリア→院フェッチの事前実行（プリフェッチ）を見送り | §5-1 で「ナレーション演出中に裏で取得」と書いたが、実装では簡素化し、院選択画面に遷移した時点で fetch する方式にした（軽いローディング表示のみ）。挙動・正しさに影響なし |
 | `isCouponTime` / `isToday` の送信キー | `addParamsToCtaUrl` で計算・分岐は実装済みだが、L-Step 側に対応する変数IDが未確定のため、暫定で `varMapping['isCouponTime']` / `varMapping['isToday']` という文字列キーのまま送信している（§10 オープン項目に追記） |
 | 院名の画面表示 | 診断書・クリア画面で `answers.clinic`（`sururim_list.php` 由来のクリニック表示名）を `POP.show()` の html に文字列展開している。ユーザーの自由入力ではなく自社バックエンド（BigQuery）由来の運用データのため XSS リスクは実質的にないと判断し、`.text()` 経由への変更は行っていない |
-| `select` の iOS ズーム対策 | Base の `select{font-size:1.3rem}` は改変禁止のため、`.reserve__clinic-select` に `font-size:1.6rem` の Page 側上書きを追加 |
+| `select` の iOS ズーム対策 | Base の `select{font-size:1.3rem}` は改変禁止のため、`.reserve__clinic-select` に `font-size:16px` の Page 側上書きを追加 |
+| **`.story` 配下の単位を rem → px に方針変更** | `.story` の `max-width` を固定 480px にした結果、Base のフルード rem 設計（画面幅に応じて `1rem` が 10〜16px まで変化）に乗せたままだと文字サイズ・余白が input より最大60%大きく表示される不整合が発生した。ユーザー指摘を受け、`.story` 配下（Page セクションのほぼ全体）を **input のオリジナル px 値に戻す**方針に変更。Reset / Base / Utility は無改変のまま維持し、Page セクションのみ px 直書きとする（`coding-css.md` §4 の原則からは外れるが、480px 固定フレームという input の設計意図を正確に再現するための明示的な例外として Page セクション冒頭にコメントで明記） |
+| Utility 誤用の修正 | 実装当初、LP 固有の微調整をテンプレ流用の `u-color-red`(`#EF4B7D`) 等で代用していたが、input の実際の指定色と異なっていた（例:「10年無事故」は `#e0426e` が正、`u-color-red` は `#EF4B7D` で不一致）。`u-fs-*`/`u-color-*` の LP 独自追加分は削除し、`.pop__accent` / `.pop__note` / `.pop__strong` / `.caro__reason-num` / `.ba-case__title` / `.ba-case__disclaimer` 等の Page 層 BEM クラスに置き換えて input と同じ色・サイズに修正 |
+| タイプライター表示のフォントサイズ計算 | `UI.say()` の自動フィット処理も rem 変数（1.45 起点）で実装していたが、CSS 側の px 統一に合わせて px 計算（14.5 起点、12.5 下限）に戻した |
+| `.fat img` / `.prop img` の意図しない拡大を修正 | Base の `img, video { width: 100%; height: auto; }` により、`height` のみ指定していた `.fat img` / `.prop img` が横幅いっぱいに引き伸ばされる不具合を実装中に発見。`width: auto;` を明示して修正 |
+| Q2「年代」の選択肢を4→8択に変更 | ユーザー指示により `20代/30代/40代/50代以上` の4択から `17歳以下・高校生/18〜19歳 ※高校生を除く/20代/30代/40代/50代/60代/70代以上` の8択に変更。`value` は `label` と同一文字列のまま L-Step 変数 `var_2184988` にそのまま送信される（他ロジックとの依存なし・関連箇所への影響なし） |
 
 ---
 
@@ -57,7 +62,7 @@ CTA までを 1 ファイルの `<style>` + `<script>` に内包した「開発�
 
 | 項目 | 扱い |
 |---|---|
-| 3 種の画像/動画差し替え枠（`imgph`） | 実素材未着のため、input 同様のプレースホルダ (`.imgph`) のまま出力する |
+| 3 種の画像/動画差し替え枠（`imgph`） | 「脂肪細胞の変化イメージ」（`img/fat.webp` 349×281）、「選ばれる5つの理由」の画像枠5点（`img/sl_illust_01.webp`〜`05.webp` 各647×258、`REASONS` 配列の順に対応）は納品済みのため実装済み（`.pop__img` クラス、`width`/`height`/`loading="lazy"` 付与）。残り1種（症例写真Before/After枠 ×3）は実素材未着のため `.imgph` プレースホルダのまま |
 | フッター「運営者情報」「プライバシーポリシー」リンク | input と同じ `href="#"` のまま（差し替えは別途） |
 | GIFT 01 の価格表記（サマーキャンペーン 4,900円） | 本日 (2026-07-23) は 7/31 以前のため現状表記のまま。8月更新は別タスク |
 | `google-bigquery-api` 本体・認証情報 | 本番環境に実在する前提。ローカルでは PHP 未定義関数警告が出るが無視してよい |
@@ -199,12 +204,13 @@ await cal.createCalendar({ params: { clinicId: selectedClinicId, days: 21 } });
 
 - ファイル先頭 `@charset "utf-8";` → Reset（`calendar-lp/css/style.css:3-80` を無改変コピー）→
   Base（同 82-244 を無改変コピー）→ Utility → Page → Animation の順で構成する。
-- **単位変換**: input の `<style>`（327行）は px 直書きが大半。Base のフルード rem 設計
-  （375px 基準で 1rem=10px、600px で頭打ち）に乗せるため、`font-size`／`margin`／`padding`／`width`
-  ／`height`／`top`／`left`等はすべて **px値 ÷ 10 の rem** に変換する。`border`／`outline`／
-  `box-shadow` の blur・spread は px のまま維持する（`coding-css.md` §4）。
-  - 例: `.app { max-width:480px; }` → `.app { max-width:48rem; }`
-  - 例: `.talk { flex:0 0 118px; }` → `.talk { flex:0 0 11.8rem; }`
+- **単位方針（実装確定版）**: input の `.app` は 480px 固定のスマホフレーム（フルード rem 設計を前提としない
+  固定サイズ UI）のため、`.story` 配下（Page セクションのほぼ全体）は Base のフルード rem 設計に乗せず、
+  **input のオリジナル px 値をそのまま使用する**。rem 化すると画面幅 600px 以上で文字サイズ・余白が
+  input より最大60%大きくなり、意図した見た目から外れるため（実装当初は px÷10 の rem に変換していたが、
+  ユーザー指摘により全面 px 化に修正）。`border`／`outline`／`box-shadow` の blur・spread はもともと px。
+  - 例: `.talk { flex:0 0 118px; }`（input と同一の値のまま）
+  - Reset／Base／Utility の3ブロックは無改変・rem のまま（テンプレ規約 §2〜§3 準拠）。
 - **`body` の上書き**: Base の `body { background:#fff; font-family:"Noto Sans JP"...; color:#242424; }` は
   テキストとして改変しないが、Page セクションで `body` 向けの追加ルール
   （`background:#3a2f3d; font-family:'Zen Maru Gothic',...; display:flex; justify-content:center;` 等）を
