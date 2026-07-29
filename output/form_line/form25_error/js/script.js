@@ -1089,7 +1089,7 @@ $(() => {
 
     try {
       const requestUrl = new URL(
-        '/form_line/form25/js/sururim_list.php',
+        '/form_line/form25_error/js/sururim_list.php',
         window.location.origin,
       );
       const response = await fetch(requestUrl, {
@@ -1188,7 +1188,7 @@ $(() => {
         parentSelector: '#js-time-calendar',
         checkBoxAttrName: 'date_1',
         scheduleFetchUrl: new URL(
-          '/form_line/form25/js/sururim_schedule.php',
+          '/form_line/form25_error/js/sururim_schedule.php',
           window.location.origin,
         ),
         options: {
